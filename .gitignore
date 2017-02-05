@@ -89,3 +89,4 @@ ENV/
 .ropeproject
 
 *.csv
+database.db

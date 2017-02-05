@@ -1,1 +1,3 @@
 pandas
+flask
+flask_sqlalchemy

@@ -1,5 +1,5 @@
 # whereareyou
-Passive indoor localization using the Wifi signal strength of a users devices. A set of slaves (like Raspberry Pis) are distributed at the location and send the signal strengths of detected devices to a master server. Based on a pretrained model the master predicts where the devices currently are located.
+Inspired by [whereami](https://github.com/kootenpv/whereami). Passive indoor localization using the Wifi signal strength of a users devices. A set of slaves (like Raspberry Pis) is distributed at the location and send the signal strengths of detected devices to a master server. Based on a pretrained model the master predicts where the devices currently are located.
 
 ## Setup
 ### Slaves
@@ -10,6 +10,17 @@ Passive indoor localization using the Wifi signal strength of a users devices. A
 - Install Python dependencies  
 `pip install -r requirements.txt`  
 
+### Master
+- Install Python dependencies  
+`pip install -r requirements.txt`  
+- Create the database initially  
+`python -c "from master import db; db.create_all()"`
+
 ## Usage
+### Slaves
 - Run `slave.py` on every device at the location you're owning  
 `python slave.py --network ItHurtsWhenIP --wifi-interface wlp3s0`  
+
+### Master
+- Run `master.py` on a device that can be accessed by the slaves in your internal network  
+`python master`  
