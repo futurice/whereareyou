@@ -25,7 +25,7 @@ class Detection(db.Model):
 
 class Measurement(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    slave_id = db.Column(db.Integer)
+    slave_id = db.Column(db.String)
     power = db.Column(db.Integer)
     detection_id = db.Column(db.Integer, db.ForeignKey('detection.id'))
     detection = db.relationship('Detection', backref=db.backref('measurements', lazy='dynamic'))
@@ -45,14 +45,55 @@ def detection_to_dict(detection):
         detection_dict["measurements"].append({'power': m.power, 'slave_id': m.slave_id})
     return detection_dict
 
-@app.route("/")
-def hello():
+@app.route('/dashboard')
+def dashboard():
+    return """
+
+<!DOCTYPE html>
+<html>
+  <head>
+    <script type="text/javascript" src="http://smoothiecharts.org/smoothie.js"></script>
+    <script src="https://code.jquery.com/jquery-1.11.3.js"></script>
+    <script type="text/javascript">
+
+      var cellphone = new TimeSeries();
+      var ipod = new TimeSeries();
+      setInterval(function() {
+        $.getJSON( "/status", function( data ) {
+        c1 = data[0]["measurements"][0]["power"];
+        c2 = data[1]["measurements"][0]["power"];
+        console.log(c1)
+        console.log(c2)
+        cellphone.append(new Date().getTime(), c1);
+        ipod.append(new Date().getTime(), c2);
+        });
+      }, 5000);
+
+      function createTimeline() {
+        var chart = new SmoothieChart({millisPerPixel:100, minValue:-100, maxValue:0});
+        chart.addTimeSeries(cellphone, { strokeStyle: 'rgba(0, 255, 0, 1)', fillStyle: 'rgba(0, 255, 0, 0.2)', lineWidth: 4 });
+        chart.addTimeSeries(ipod, { strokeStyle: 'rgba(0, 255, 255, 1)', fillStyle: 'rgba(0, 255, 255, 0.2)', lineWidth: 4 });
+        chart.streamTo(document.getElementById("chart"), 500);
+      }
+    </script>
+  </head>
+  <body onload="createTimeline()">
+  <canvas id="chart" width="1000" height="100"></canvas>
+  </body>
+</html>
+
+    """
+
+
+@app.route("/status")
+def root():
     return json.dumps([detection_to_dict(d) for d in Detection.query.all()])
+
 
 @app.route('/update', methods=['POST'])
 def update():
     mac = request.form['mac']
-    slave_id = int(request.form['slave_id'])
+    slave_id = request.form['slave_id']
     power = int(request.form['power'])
 
     detection = Detection.query.filter_by(mac=mac).first()
@@ -71,7 +112,7 @@ def update():
         measurement = Measurement(slave_id, power, detection)
         db.session.add(measurement)
     db.session.commit()
-    return "Updated measurement of " + str(slave_id) + " for " + mac
+    return "Updated measurement of " + slave_id + " for " + mac + " with " + str(power)
 
 if __name__ == "__main__":
     app.run()
