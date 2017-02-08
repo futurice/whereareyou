@@ -1,5 +1,6 @@
 from flask import Flask, request
 from flask_sqlalchemy import SQLAlchemy
+from utils import get_mac_from_request
 import os
 import datetime
 import json
@@ -113,6 +114,13 @@ def update():
         db.session.add(measurement)
     db.session.commit()
     return "Updated measurement of " + slave_id + " for " + mac + " with " + str(power)
+
+
+@app.route('/get_mac')
+def get_mac():
+    mac = get_mac_from_request(request)
+    return "Wasn't able to identify MAC address" if mac is None else mac
+
 
 if __name__ == "__main__":
     app.run()
