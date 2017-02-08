@@ -90,3 +90,4 @@ ENV/
 
 *.csv
 database.db
+locations.yml

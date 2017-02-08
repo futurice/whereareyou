@@ -14,7 +14,9 @@ Inspired by [whereami](https://github.com/kootenpv/whereami). Passive indoor loc
 - Install Python dependencies  
 `pip install -r requirements.txt`  
 - Create the database initially  
-`python -c "from master import db; db.create_all()"`
+`python -c "from master import db; db.create_all()"`  
+- Copy `example.locations.yml` to `locations.yml` and add the locations you want to track  
+`cp example.locations.yml locations.yml`
 
 ## Usage
 ### Slaves

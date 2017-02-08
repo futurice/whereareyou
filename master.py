@@ -1,50 +1,20 @@
-from flask import Flask, request
-from flask_sqlalchemy import SQLAlchemy
-from utils import get_mac_from_request
-import os
-import datetime
 import json
-
-app = Flask(__name__)
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + os.getcwd() + '/database.db'
-app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = True
-db = SQLAlchemy(app)
-
-
-class Detection(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    mac = db.Column(db.String(80), unique=True)
-    last_updated = db.Column(db.DateTime)
-
-    def __init__(self, mac):
-        self.mac = mac
-        self.last_updated = datetime.datetime.now()
-
-    def __repr__(self):
-        return '<Detection %r (%r)>' % (self.mac, str(self.last_updated))
+import yaml
+from flask import request
+from models import Detection, Measurement, Location, app, db
+from utils import get_mac_from_request
 
 
-class Measurement(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    slave_id = db.Column(db.String)
-    power = db.Column(db.Integer)
-    detection_id = db.Column(db.Integer, db.ForeignKey('detection.id'))
-    detection = db.relationship('Detection', backref=db.backref('measurements', lazy='dynamic'))
+def seed():
+    with open("locations.yml", 'r') as stream:
+        try:
+            locations = yaml.load(stream)
+            for l in locations:
+                db.session.add(Location(l))
+            db.session.commit()
+        except yaml.YAMLError as exc:
+            print(exc)
 
-    def __init__(self, slave_id, power, detection):
-        self.slave_id = slave_id
-        self.power = power
-        self.detection = detection
-
-    def __repr__(self):
-        return '<Measurement %r %r (%r)>' % (self.slave_id, self.power, self.detection)
-
-def detection_to_dict(detection):
-    detection_dict = {'mac':detection.mac}
-    detection_dict["measurements"] = []
-    for m in detection.measurements.all():
-        detection_dict["measurements"].append({'power': m.power, 'slave_id': m.slave_id})
-    return detection_dict
 
 @app.route('/dashboard')
 def dashboard():
@@ -87,8 +57,13 @@ def dashboard():
 
 
 @app.route("/status")
+def status():
+    return json.dumps([d.serialize() for d in Detection.query.all()])
+
+
+@app.route('/locations')
 def root():
-    return json.dumps([detection_to_dict(d) for d in Detection.query.all()])
+    return json.dumps([l.serialize() for l in Location.query.all()])
 
 
 @app.route('/update', methods=['POST'])
