@@ -1,58 +1,55 @@
-from flask import Flask, request
-from flask_sqlalchemy import SQLAlchemy
-import os
-import datetime
 import json
-
-app = Flask(__name__)
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + os.getcwd() + '/database.db'
-app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = True
-db = SQLAlchemy(app)
-
-
-class Detection(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    mac = db.Column(db.String(80), unique=True)
-    last_updated = db.Column(db.DateTime)
-
-    def __init__(self, mac):
-        self.mac = mac
-        self.last_updated = datetime.datetime.now()
-
-    def __repr__(self):
-        return '<Detection %r (%r)>' % (self.mac, str(self.last_updated))
+import yaml
+from flask import request, render_template
+from models import Location, Detection, TrainingDetection, Measurement, app, db
+from utils import get_mac_from_request
 
 
-class Measurement(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    slave_id = db.Column(db.Integer)
-    power = db.Column(db.Integer)
-    detection_id = db.Column(db.Integer, db.ForeignKey('detection.id'))
-    detection = db.relationship('Detection', backref=db.backref('measurements', lazy='dynamic'))
+def seed():
+    with open("locations.yml", 'r') as stream:
+        try:
+            locations = yaml.load(stream)
+            for l in locations:
+                db.session.add(Location(l))
+            db.session.commit()
+        except yaml.YAMLError as exc:
+            print(exc)
 
-    def __init__(self, slave_id, power, detection):
-        self.slave_id = slave_id
-        self.power = power
-        self.detection = detection
 
-    def __repr__(self):
-        return '<Measurement %r %r (%r)>' % (self.slave_id, self.power, self.detection)
+@app.route('/')
+def root():
+    client_mac = get_mac_from_request(request)
+    headers = ['MAC']
+    headers.extend([l.value for l in Location.query.all()])
+    macs = [t.mac for t in TrainingDetection.query.group_by('mac').all()]
+    home_json = dict()
+    for mac in macs:
+        home_json[mac] = dict()
+        for location in locations:
+            l = Location.query.filter_by(value=location).first()
+            home_json[mac][location] = (TrainingDetection.query.filter_by(mac=mac, location=l).first() is not None)
+    return render_template('home.html', headers=headers, home_json=home_json)
 
-def detection_to_dict(detection):
-    detection_dict = {'mac':detection.mac}
-    detection_dict["measurements"] = []
-    for m in detection.measurements.all():
-        detection_dict["measurements"].append({'power': m.power, 'slave_id': m.slave_id})
-    return detection_dict
 
-@app.route("/")
-def hello():
-    return json.dumps([detection_to_dict(d) for d in Detection.query.all()])
+@app.route('/dashboard')
+def dashboard():
+    return render_template('dashboard.html')
+
+
+@app.route("/status")
+def status():
+    return json.dumps([d.serialize() for d in Detection.query.all()])
+
+
+@app.route('/locations')
+def locations():
+    return json.dumps([l.serialize() for l in Location.query.all()])
+
 
 @app.route('/update', methods=['POST'])
 def update():
     mac = request.form['mac']
-    slave_id = int(request.form['slave_id'])
+    slave_id = request.form['slave_id']
     power = int(request.form['power'])
 
     detection = Detection.query.filter_by(mac=mac).first()
@@ -71,7 +68,8 @@ def update():
         measurement = Measurement(slave_id, power, detection)
         db.session.add(measurement)
     db.session.commit()
-    return "Updated measurement of " + str(slave_id) + " for " + mac
+    return "Updated measurement of " + slave_id + " for " + mac + " with " + str(power)
+
 
 if __name__ == "__main__":
-    app.run()
+    app.run(host='0.0.0.0')
