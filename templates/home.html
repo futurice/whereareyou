@@ -1,0 +1,23 @@
+<table>
+  <thead>
+  {% for column in headers %}
+    <th>
+      {{ column }}
+    </th>
+  {% endfor %}
+  </thead>
+  <tbody>
+    {% for mac in home_json %}
+      <tr>
+        <td>
+        {{mac}}
+        </td>
+        {% for loc in home_json[mac] %}
+        <td>
+          {{ home_json[mac][loc] }}
+        </td>
+        {% endfor %}
+      </tr>
+    {% endfor %}
+  </tbody>
+<table>

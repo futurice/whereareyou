@@ -1,7 +1,7 @@
 import json
 import yaml
-from flask import request
-from models import Detection, Measurement, Location, app, db
+from flask import request, render_template
+from models import Location, Detection, TrainingDetection, Measurement, app, db
 from utils import get_mac_from_request
 
 
@@ -14,6 +14,22 @@ def seed():
             db.session.commit()
         except yaml.YAMLError as exc:
             print(exc)
+
+@app.route('/')
+def root():
+    client_mac = get_mac_from_request(request)
+    locations = [l.value for l in Location.query.all()]
+    headers = ['MAC']
+    headers.extend(locations)
+    macs = [t.mac for t in TrainingDetection.query.group_by('mac').all()]
+    home_json = dict()
+    for mac in macs:
+        home_json[mac] = dict()
+        for location in locations:
+            l = Location.query.filter_by(value=location).first()
+            home_json[mac][location] = (TrainingDetection.query.filter_by(mac=mac, location=l).first() is not None)
+    return render_template('home.html', headers=headers, home_json=home_json)
+
 
 
 @app.route('/dashboard')
@@ -62,7 +78,7 @@ def status():
 
 
 @app.route('/locations')
-def root():
+def locations():
     return json.dumps([l.serialize() for l in Location.query.all()])
 
 
@@ -98,4 +114,4 @@ def get_mac():
 
 
 if __name__ == "__main__":
-    app.run()
+    app.run(host='0.0.0.0')

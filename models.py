@@ -25,7 +25,7 @@ class Location(db.Model):
 
 class Detection(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    mac = db.Column(db.String(50), unique=True)
+    mac = db.Column(db.String(50))
     last_updated = db.Column(db.DateTime)
 
     def __init__(self, mac):
@@ -50,6 +50,9 @@ class TrainingDetection(Detection):
 
     def __repr__(self):
         return '<TrainingDetection at %r for %r (%r)>' % (self.location, self.mac, str(self.last_updated))
+
+    def serialize(self):
+        return { 'mac':self.mac, 'location': self.location.serialize() }
 
 
 class Measurement(db.Model):
