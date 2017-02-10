@@ -30,12 +30,16 @@ def index():
     headers.extend(locations)
     macs = [t.mac for t in TrainingDetection.query.group_by('mac').all()]
     home_json = dict()
+    champions = []
     for mac in macs:
+        if TrainingDetection.query.filter_by(mac=mac).count() == len(locations):
+            champions.append(mac)
+            continue
         home_json[mac] = dict()
         for location in locations:
             l = Location.query.filter_by(value=location).first()
             home_json[mac][location] = (TrainingDetection.query.filter_by(mac=mac, location=l).first() is not None)
-    return render_template('index.html', headers=headers, home_json=home_json)
+    return render_template('index.html', champions=champions, headers=headers, home_json=home_json)
 
 @app.route('/dashboard')
 @login_required

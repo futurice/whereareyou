@@ -1,3 +1,8 @@
+Champions:
+{% for c in champions %}
+  {{ c }}
+{% endfor %}
+
 <table>
   <thead>
   {% for column in headers %}
@@ -14,7 +19,11 @@
         </td>
         {% for loc in home_json[mac] %}
         <td>
-          {{ home_json[mac][loc] }}
+          {% if home_json[mac][loc] %}
+            Yes
+          {% else %}
+            No
+          {% endif %}
         </td>
         {% endfor %}
       </tr>
