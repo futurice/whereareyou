@@ -1,3 +1,4 @@
+from dotenv import load_dotenv, find_dotenv
 from flask import Flask, request, redirect, url_for, session, render_template
 from flask_login import LoginManager, login_user, logout_user, current_user, \
                         login_required
@@ -8,6 +9,8 @@ from models import get_models
 from requests_oauthlib import OAuth2Session
 import json
 import os
+
+load_dotenv(find_dotenv())
 
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + os.getcwd() + '/database.db'
