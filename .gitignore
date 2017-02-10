@@ -91,3 +91,5 @@ ENV/
 *.csv
 database.db
 locations.yml
+ssl.*
+venv*

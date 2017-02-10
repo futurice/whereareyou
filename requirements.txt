@@ -1,5 +1,9 @@
-pandas
 flask
+flask_login
 flask_sqlalchemy
-requests
+Flask-SSLify
 pyyaml
+pyOpenSSL
+python-dotenv
+requests
+requests_oauthlib

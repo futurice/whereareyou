@@ -17,6 +17,9 @@ Inspired by [whereami](https://github.com/kootenpv/whereami). Passive indoor loc
 `python -c "from master import db; db.create_all()"`  
 - Copy `example.locations.yml` to `locations.yml` and add the locations you want to track  
 `cp example.locations.yml locations.yml`
+- Copy `example.env` to `.env` and add the appropriate configuration keys  
+`cp example.env .env`
+
 
 ## Usage
 ### Slaves
