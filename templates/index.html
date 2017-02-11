@@ -1,32 +1,7 @@
-Champions:
-{% for c in champions %}
-  {{ c }}
-{% endfor %}
+{% with champions=champions %}
+    {% include "champions.html" %}
+{% endwith %}
 
-<table>
-  <thead>
-  {% for column in headers %}
-    <th>
-      {{ column }}
-    </th>
-  {% endfor %}
-  </thead>
-  <tbody>
-    {% for mac in home_json %}
-      <tr>
-        <td>
-        {{mac}}
-        </td>
-        {% for loc in home_json[mac] %}
-        <td>
-          {% if home_json[mac][loc] %}
-            Yes
-          {% else %}
-            No
-          {% endif %}
-        </td>
-        {% endfor %}
-      </tr>
-    {% endfor %}
-  </tbody>
-<table>
+{% with headers=headers, training_json=training_json %}
+    {% include "training_table.html" %}
+{% endwith %}

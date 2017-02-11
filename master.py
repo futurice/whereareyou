@@ -20,6 +20,11 @@ def seed():
             print(exc)
 
 
+def get_current_detections():
+    current_detection_ids = [d.id for d in TrainingDetection.query.filter_by(location=None).all()]
+    return [Detection.query.get(id).serialize() for id in current_detection_ids]
+
+
 @app.route('/')
 @login_required
 @is_futurice_employee
@@ -28,19 +33,19 @@ def index():
     headers = ['MAC']
     locations = [l.value for l in Location.query.all()]
     headers.extend(locations)
-    macs = [t.mac for t in TrainingDetection.query.group_by('mac').all()]
-    home_json = dict()
+    training_macs = [t.mac for t in TrainingDetection.query.filter(TrainingDetection.location!=None).group_by('mac').all()]
+    training_json = dict()
     champions = []
-    for mac in macs:
+    for mac in training_macs:
         if TrainingDetection.query.filter_by(mac=mac).count() == len(locations):
             champions.append(mac)
             continue
-        home_json[mac] = dict()
+        training_json[mac] = dict()
         for location in locations:
             l = Location.query.filter_by(value=location).first()
-            home_json[mac][location] = (TrainingDetection.query.filter_by(mac=mac, location=l).first() is not None)
+            training_json[mac][location] = (TrainingDetection.query.filter_by(mac=mac, location=l).first() is not None)
 
-    return render_template('index.html', champions=champions, headers=headers, home_json=home_json)
+    return render_template('index.html', champions=champions, headers=headers, training_json=training_json)
 
 @app.route('/dashboard')
 @login_required
@@ -54,8 +59,7 @@ def dashboard():
 @is_futurice_employee
 def status():
     """Return current detections"""
-    current_detection_ids = [d.id for d in TrainingDetection.query.filter_by(location=None).all()]
-    return json.dumps([Detection.query.get(id).serialize() for id in current_detection_ids])
+    return json.dumps(get_current_detections())
 
 
 @app.route('/locations')

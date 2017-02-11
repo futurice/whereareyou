@@ -1,0 +1,27 @@
+<table>
+  <thead>
+  {% for column in headers %}
+    <th>
+      {{ column }}
+    </th>
+  {% endfor %}
+  </thead>
+  <tbody>
+    {% for mac in training_json %}
+      <tr>
+        <td>
+        {{mac}}
+        </td>
+        {% for loc in training_json[mac] %}
+        <td>
+          {% if training_json[mac][loc] %}
+            Yes
+          {% else %}
+            No
+          {% endif %}
+        </td>
+        {% endfor %}
+      </tr>
+    {% endfor %}
+  </tbody>
+<table>
