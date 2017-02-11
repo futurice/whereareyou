@@ -39,6 +39,7 @@ def index():
         for location in locations:
             l = Location.query.filter_by(value=location).first()
             home_json[mac][location] = (TrainingDetection.query.filter_by(mac=mac, location=l).first() is not None)
+
     return render_template('index.html', champions=champions, headers=headers, home_json=home_json)
 
 @app.route('/dashboard')
@@ -52,7 +53,9 @@ def dashboard():
 @login_required
 @is_futurice_employee
 def status():
-    return json.dumps([d.serialize() for d in Detection.query.all()])
+    """Return current detections"""
+    current_detection_ids = [d.id for d in TrainingDetection.query.filter_by(location=None).all()]
+    return json.dumps([Detection.query.get(id).serialize() for id in current_detection_ids])
 
 
 @app.route('/locations')
@@ -63,8 +66,6 @@ def locations():
 
 
 @app.route('/update', methods=['POST'])
-@login_required
-@is_futurice_employee
 def update():
     mac = request.form['mac']
     slave_id = request.form['slave_id']

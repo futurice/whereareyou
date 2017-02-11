@@ -44,7 +44,11 @@ def init_models(db):
                 return '<Detection %r (%r)>' % (self.mac, str(self.last_updated))
 
             def serialize(self):
-                return { 'mac':self.mac }
+                serialized = { 'mac':self.mac , 'measurements': []}
+                for m in self.measurements:
+                    serialized['measurements'].append(m.serialize())
+                return serialized
+
 
 
         class TrainingDetection(Detection):
@@ -60,7 +64,10 @@ def init_models(db):
                 return '<TrainingDetection at %r for %r (%r)>' % (self.location, self.mac, str(self.last_updated))
 
             def serialize(self):
-                return { 'mac':self.mac, 'location': self.location.serialize() }
+                serialized = { 'mac':self.mac, 'location': self.location.serialize(), 'measurements': []}
+                for m in self.measurements:
+                    serialized['measurements'].append(m.serialize())
+                return serialized
 
 
         class Measurement(db.Model):
