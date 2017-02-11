@@ -1,4 +1,4 @@
-<table>
+<table class="table">
   <thead>
   {% for column in headers %}
     <th>
@@ -13,15 +13,18 @@
         {{mac}}
         </td>
         {% for loc in training_json[mac] %}
-        <td>
           {% if training_json[mac][loc] %}
-            Yes
+            <td class="success">
+              <center><span class="glyphicon glyphicon-ok"></span></center>
+            </td>
           {% else %}
-            No
+            <td class="danger">
+              <center><span class="glyphicon glyphicon-remove"></span></center>
+            </td>
           {% endif %}
         </td>
         {% endfor %}
       </tr>
     {% endfor %}
   </tbody>
-<table>
+</table>

@@ -1,7 +1,11 @@
-{% with champions=champions %}
-    {% include "champions.html" %}
-{% endwith %}
+{% extends "base.html" %}
 
-{% with headers=headers, training_json=training_json %}
-    {% include "training_table.html" %}
-{% endwith %}
+{% block content %}
+  {% with champions=champions %}
+      {% include "champions.html" %}
+  {% endwith %}
+
+  {% with headers=headers, training_json=training_json %}
+      {% include "training_table.html" %}
+  {% endwith %}
+{% endblock %}

@@ -11,6 +11,7 @@ import json
 import os
 
 load_dotenv(find_dotenv())
+COMPANY_EMAIL = "@futurice.com"
 
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + os.getcwd() + '/database.db'
@@ -50,10 +51,10 @@ def get_google_auth(state=None, token=None):
 """ App Routing """
 
 
-def is_futurice_employee(f):
+def is_employee(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
-        if current_user.email.endswith("@futurice.com"):
+        if current_user.email.endswith(COMPANY_EMAIL):
             return f(*args, **kwargs)
         else:
             return render_template('denied.html')

@@ -1,9 +1,9 @@
 """Master Logic and Routing"""
 
 from app import app, db, Location, Detection, TrainingDetection, Measurement, \
-                is_futurice_employee
+                is_employee
 from flask import request, render_template
-from flask_login import login_required
+from flask_login import login_required, current_user
 from utils import get_mac_from_request
 import json
 import os
@@ -25,15 +25,9 @@ def get_current_detections():
     return [Detection.query.get(id).serialize() for id in current_detection_ids]
 
 
-@app.route('/')
-@login_required
-@is_futurice_employee
-def index():
-    client_mac = get_mac_from_request(request)
+def get_training_table(training_macs, locations):
     headers = ['MAC']
-    locations = [l.value for l in Location.query.all()]
     headers.extend(locations)
-    training_macs = [t.mac for t in TrainingDetection.query.filter(TrainingDetection.location!=None).group_by('mac').all()]
     training_json = dict()
     champions = []
     for mac in training_macs:
@@ -44,19 +38,39 @@ def index():
         for location in locations:
             l = Location.query.filter_by(value=location).first()
             training_json[mac][location] = (TrainingDetection.query.filter_by(mac=mac, location=l).first() is not None)
+    return champions, headers, training_json
 
-    return render_template('index.html', champions=champions, headers=headers, training_json=training_json)
+
+def get_context(**params):
+    view_params = params
+    view_params['user_email'] = current_user.email
+    view_params['avatar_url'] = current_user.avatar
+    return view_params
+
+
+@app.route('/')
+@login_required
+@is_employee
+def index():
+    client_mac = get_mac_from_request(request)
+    client_mac = 'AC'
+    locations = [l.value for l in Location.query.all()]
+    training_macs = [t.mac for t in TrainingDetection.query.filter(TrainingDetection.location!=None).group_by('mac').all()]
+    current_detected_macs = [t.mac for t in TrainingDetection.query.filter(TrainingDetection.location==None).group_by('mac').all()]
+    champions, headers, training_json = get_training_table(training_macs, locations)
+
+    return render_template('index.html', **get_context(champions=champions, headers=headers, training_json=training_json))
 
 @app.route('/dashboard')
 @login_required
-@is_futurice_employee
+@is_employee
 def dashboard():
     return render_template('dashboard.html')
 
 
 @app.route("/status")
 @login_required
-@is_futurice_employee
+@is_employee
 def status():
     """Return current detections"""
     return json.dumps(get_current_detections())
@@ -64,7 +78,7 @@ def status():
 
 @app.route('/locations')
 @login_required
-@is_futurice_employee
+@is_employee
 def locations():
     return json.dumps([l.serialize() for l in Location.query.all()])
 
