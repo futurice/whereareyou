@@ -13,7 +13,7 @@ import os
 load_dotenv(find_dotenv())
 COMPANY_EMAIL = "@futurice.com"
 
-app = Flask(__name__)
+app = Flask(__name__, static_url_path='', static_folder='static')
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + os.getcwd() + '/database.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = True
 app.config['SECRET_KEY'] = os.environ.get("SECRET_KEY")
@@ -22,7 +22,7 @@ db = SQLAlchemy(app)
 login_manager = LoginManager(app)
 login_manager.login_view = "login"
 login_manager.session_protection = "strong"
-User, Location, Detection, TrainingDetection, Measurement = get_models(db)
+User, Location, Detection, TrainingDetection, Measurement, Device = get_models(db)
 
 
 @login_manager.user_loader

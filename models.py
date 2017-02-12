@@ -126,7 +126,7 @@ def init_models(db):
 
             def serialize(self):
                 return { 'power': self.power, 'slave_id': self.slave_id }
-        models = (User, Location, Detection, TrainingDetection, Measurement)
+        models = (User, Location, Detection, TrainingDetection, Measurement, Device)
     return
 
 

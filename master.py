@@ -1,7 +1,7 @@
 """Master Logic and Routing"""
 
 from app import app, db, User, Location, Detection, TrainingDetection, \
-                is_employee, Measurement
+                is_employee, Measurement, Device
 from flask import request, render_template
 from flask_login import login_required, current_user
 from utils import get_mac_from_request
@@ -31,24 +31,26 @@ def seed():
 
 
 def get_current_detections():
-    current_detection_ids = [d.id for d in Detection.query.filter_by(location=None).all()]
+    current_detection_ids = [d.id for d in Detection.query.filter_by(type='detection').all()]
     return [Detection.query.get(id).serialize() for id in current_detection_ids]
 
 
 def get_training_table(training_macs, locations):
-    headers = ['MAC']
-    headers.extend(locations)
     training_json = dict()
     champions = []
     for mac in training_macs:
-        if TrainingDetection.query.filter_by(mac=mac).count() == len(locations):
-            champions.append(mac)
-            continue
+        is_champion = True
         training_json[mac] = dict()
         for location in locations:
             l = Location.query.filter_by(value=location).first()
             training_json[mac][location] = (TrainingDetection.query.filter_by(mac=mac, location=l).first() is not None)
-    return champions, headers, training_json
+            if TrainingDetection.query.filter_by(mac=mac, location=l).first() is None:
+                is_champion = False
+        if is_champion:
+            champions.append(mac)
+            del training_json[mac]
+            continue
+    return champions, training_json
 
 
 def get_context(**params):
@@ -69,9 +71,9 @@ def index():
     client_mac = get_mac_from_request(request)
     client_mac = 'AC'
     locations = [l.value for l in Location.query.all()]
-    training_macs = [t.mac for t in TrainingDetection.query.filter(TrainingDetection.location!=None).group_by('mac').all()]
-    current_detected_macs = [t.mac for t in TrainingDetection.query.filter(TrainingDetection.location==None).group_by('mac').all()]
-    champions, headers, training_json = get_training_table(training_macs, locations)
+    training_macs = [t.mac for t in TrainingDetection.query.group_by('mac').all()]
+    current_detected_macs = [d.mac for d in Detection.query.filter_by(type='detection').all()]
+    champions, training_json = get_training_table(training_macs, locations)
 
     if client_mac in current_detected_macs:
         ask_for_adding = True
@@ -139,6 +141,8 @@ def update():
 
 @app.route('/add_training', methods=['POST'])
 def add_training():
+    if current_user.is_anonymous:
+        return "Sorry but you must be logged in to add training data."
     mac = request.form['mac']
     location = request.form['location']
     current_detection = Detection.query.filter_by(type='detection', mac='AC').all()[0]
@@ -148,7 +152,11 @@ def add_training():
         measurement = Measurement(m.slave_id, m.power, training_detection)
         db.session.add(measurement)
     db.session.commit()
-    return index(request)
+    user = User.query.filter_by(email=current_user.email).first()
+    if not Device.query.filter_by(user=user, mac=mac).first():
+        db.session.add(Device(mac=mac, user=user))
+        db.session.commit()
+    return index()
 
 
 if __name__ == "__main__":
