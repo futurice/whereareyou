@@ -1,10 +1,13 @@
 <table class="table">
   <thead>
-  {% for column in headers %}
     <th>
-      {{ column }}
+      MAC
     </th>
-  {% endfor %}
+    {% for location in locations %}
+      <th>
+        <center>{{ location }}</center>
+      </th>
+    {% endfor %}
   </thead>
   <tbody>
     {% for mac in training_json %}
@@ -12,7 +15,7 @@
         <td>
         {{mac}}
         </td>
-        {% for loc in training_json[mac] %}
+        {% for loc in locations %}
           {% if training_json[mac][loc] %}
             <td class="success">
               <center><span class="glyphicon glyphicon-ok"></span></center>

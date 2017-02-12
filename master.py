@@ -1,13 +1,23 @@
 """Master Logic and Routing"""
 
-from app import app, db, Location, Detection, TrainingDetection, Measurement, \
-                is_employee
+from app import app, db, User, Location, Detection, TrainingDetection, \
+                is_employee, Measurement
 from flask import request, render_template
 from flask_login import login_required, current_user
 from utils import get_mac_from_request
 import json
 import os
 import yaml
+
+
+def load_data():
+    training = TrainingDetection(mac='AA', location=Location.query.all()[0])
+    m1 = Measurement('slave1', -50, training)
+    detection = Detection(mac='AC')
+    m2 = Measurement('slave1', -80, detection)
+    for x in [training, m1, detection, m2]:
+        db.session.add(x)
+    db.session.commit()
 
 
 def seed():
@@ -21,7 +31,7 @@ def seed():
 
 
 def get_current_detections():
-    current_detection_ids = [d.id for d in TrainingDetection.query.filter_by(location=None).all()]
+    current_detection_ids = [d.id for d in Detection.query.filter_by(location=None).all()]
     return [Detection.query.get(id).serialize() for id in current_detection_ids]
 
 
@@ -42,7 +52,10 @@ def get_training_table(training_macs, locations):
 
 
 def get_context(**params):
-    view_params = params
+    if params:
+        view_params = params
+    else:
+        view_params = dict()
     view_params['user_email'] = current_user.email
     view_params['avatar_url'] = current_user.avatar
     return view_params
@@ -52,6 +65,7 @@ def get_context(**params):
 @login_required
 @is_employee
 def index():
+    ask_for_adding = False
     client_mac = get_mac_from_request(request)
     client_mac = 'AC'
     locations = [l.value for l in Location.query.all()]
@@ -59,7 +73,14 @@ def index():
     current_detected_macs = [t.mac for t in TrainingDetection.query.filter(TrainingDetection.location==None).group_by('mac').all()]
     champions, headers, training_json = get_training_table(training_macs, locations)
 
-    return render_template('index.html', **get_context(champions=champions, headers=headers, training_json=training_json))
+    if client_mac in current_detected_macs:
+        ask_for_adding = True
+
+    return render_template('index.html', **get_context(champions=champions,
+                           training_json=training_json,
+                           ask_for_adding=ask_for_adding,
+                           locations=locations, mac=client_mac))
+
 
 @app.route('/dashboard')
 @login_required
@@ -74,6 +95,14 @@ def dashboard():
 def status():
     """Return current detections"""
     return json.dumps(get_current_detections())
+
+
+@app.route("/users")
+@login_required
+@is_employee
+def users():
+    """Return users with devices"""
+    return json.dumps([u.serialize() for u in User.query.all()])
 
 
 @app.route('/locations')
@@ -106,6 +135,20 @@ def update():
         db.session.add(measurement)
     db.session.commit()
     return "Updated measurement of " + slave_id + " for " + mac + " with " + str(power)
+
+
+@app.route('/add_training', methods=['POST'])
+def add_training():
+    mac = request.form['mac']
+    location = request.form['location']
+    current_detection = Detection.query.filter_by(type='detection', mac='AC').all()[0]
+    training_detection = TrainingDetection(location=Location.query.filter_by(value=location).all()[0], mac=mac)
+    db.session.add(training_detection)
+    for m in current_detection.measurements:
+        measurement = Measurement(m.slave_id, m.power, training_detection)
+        db.session.add(measurement)
+    db.session.commit()
+    return index(request)
 
 
 if __name__ == "__main__":

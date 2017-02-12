@@ -5,7 +5,29 @@
       {% include "champions.html" %}
   {% endwith %}
 
-  {% with headers=headers, training_json=training_json %}
+  {% with locations=locations, training_json=training_json %}
       {% include "training_table.html" %}
   {% endwith %}
+
+  {% if ask_for_adding %}
+  Please tell me where you currently are:
+  <form action="add_training" method="POST" role="form" class="form-horizontal">
+    <div class="form-group">
+      <input type="hidden" name="mac" value="{{ mac }}">
+      {% for l in locations %}
+        <div class="radio">
+          <label>
+            <input type="radio" name="location" value="{{ l }}">
+            {{ l }}
+          </label>
+        </div>
+      {% endfor %}
+    </div>
+    <div class="form-group">
+      <div class="col-sm-offset-2 col-sm-10">
+        <button type="submit" class="btn btn-default">Add</button>
+      </div>
+    </div>
+  </form>
+{% endif %}
 {% endblock %}
