@@ -1,4 +1,11 @@
-Champions:
-{% for c in champions %}
-  {{ c }}
-{% endfor %}
+<div class="col-md-12">
+  <div class="col-md-2">
+    Champions<br>
+    (at least one training entry for each location)
+  </div>
+  <div class="col-md-10">
+    {% for avatar_url in champions %}
+      <img class="profile-image img-circle" style="width: 25px; height: 25px" src="{{avatar_url}}"></a>
+    {% endfor %}
+  </div>
+</div>

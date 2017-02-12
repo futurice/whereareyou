@@ -40,14 +40,15 @@ def get_training_table(training_macs, locations):
     champions = []
     for mac in training_macs:
         is_champion = True
-        training_json[mac] = dict()
+        user = Device.query.filter_by(mac=mac).first().user
+        training_json[mac] = {'avatar_url': user.avatar}
         for location in locations:
             l = Location.query.filter_by(value=location).first()
             training_json[mac][location] = (TrainingDetection.query.filter_by(mac=mac, location=l).first() is not None)
             if TrainingDetection.query.filter_by(mac=mac, location=l).first() is None:
                 is_champion = False
         if is_champion:
-            champions.append(mac)
+            champions.append(user.avatar)
             del training_json[mac]
             continue
     return champions, training_json

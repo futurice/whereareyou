@@ -1,7 +1,7 @@
 <table class="table">
   <thead>
     <th>
-      MAC
+      User
     </th>
     {% for location in locations %}
       <th>
@@ -13,7 +13,7 @@
     {% for mac in training_json %}
       <tr>
         <td>
-        {{mac}}
+          <img class="profile-image img-circle" style="width: 25px; height: 25px" src="{{training_json[mac]['avatar_url']}}"></a>
         </td>
         {% for loc in locations %}
           {% if training_json[mac][loc] %}
