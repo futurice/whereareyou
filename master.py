@@ -89,7 +89,7 @@ def index():
 @login_required
 @is_employee
 def dashboard():
-    return render_template('dashboard.html')
+    return render_template('dashboard.html', **get_context())
 
 
 @app.route("/status")
@@ -169,4 +169,4 @@ if __name__ == "__main__":
         if not os.path.isfile('ssl.crt') and not os.path.isfile('ssl.key'):
             make_ssl_devcert('./ssl', host='localhost')
         tls_params["ssl_context"] = ('./ssl.crt', './ssl.key')
-    app.run(debug=True, threaded=True, **tls_params)
+    app.run(debug=True, host='0.0.0.0', threaded=True, **tls_params)

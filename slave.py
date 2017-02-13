@@ -4,6 +4,9 @@ import subprocess
 import os
 import time
 import requests
+from tqdm import tqdm
+from requests.packages.urllib3.exceptions import InsecureRequestWarning
+requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
 
 
 class Slave(object):
@@ -28,13 +31,15 @@ class Slave(object):
         subprocess.Popen(self.airodump_command.split(" "), shell=False, stdout=Slave.FNULL, stderr=subprocess.STDOUT)
 
     def run(self):
-        time.sleep(Slave.WAITING_DELAY)
+        for _ in tqdm(range(Slave.WAITING_DELAY)):
+            time.sleep(1)
         if not os.path.isfile(Slave.LOG_FILE + '-01.csv'):
             raise Exception(Slave.LOG_FILE + '-01.csv does not exist. Please make sure "' + self.airodump_command + '" succeeds.')
         df = pd.read_csv(Slave.LOG_FILE + '-01.csv', delimiter=' *, *', engine='python')
         self.access_point_mac = df.loc[df["ESSID"] == self.network_name].BSSID.unique()[0]
         while True:
-            time.sleep(Slave.UPDATE_INTERVAL)
+            for _ in tqdm(range(Slave.UPDATE_INTERVAL)):
+                time.sleep(1)
             df = pd.read_csv(Slave.LOG_FILE + '-01.csv', delimiter=' *, *', engine='python')
             df_stations = self.get_stations(df)
             if len(df_stations) > 0:
@@ -58,7 +63,7 @@ class Slave(object):
 
     def get_relevant_stations(self, df_stations):
         df_stations = df_stations[["Station MAC", "BSSID", "Power"]]
-        df_stations = df_stations.loc[df_stations["BSSID"] == self.access_point_mac]
+        #df_stations = df_stations.loc[df_stations["BSSID"] == self.access_point_mac]
         df_stations = df_stations[df_stations["Power"].astype(int) < 0]
         return df_stations[["Station MAC", "Power"]]
 
@@ -70,7 +75,7 @@ class Slave(object):
               'slave_id': self.slave_id,
               'power': row["Power"]
             }
-            requests.post(self.master_address + '/update', data=data)
+            requests.post(self.master_address + '/update', data=data, verify=False)
 
 
 def main():
