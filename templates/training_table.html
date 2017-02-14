@@ -1,0 +1,33 @@
+<table class="table">
+  <thead>
+    <th>
+      User
+    </th>
+    {% for location in locations %}
+      <th>
+        <center>{{ location }}</center>
+      </th>
+    {% endfor %}
+  </thead>
+  <tbody>
+    {% for mac in training_json %}
+      <tr>
+        <td>
+          <img class="profile-image img-circle" style="width: 25px; height: 25px" src="{{training_json[mac]['avatar_url']}}"></a>
+        </td>
+        {% for loc in locations %}
+          {% if training_json[mac][loc] %}
+            <td class="success">
+              <center><span class="glyphicon glyphicon-ok"></span></center>
+            </td>
+          {% else %}
+            <td class="danger">
+              <center><span class="glyphicon glyphicon-remove"></span></center>
+            </td>
+          {% endif %}
+        </td>
+        {% endfor %}
+      </tr>
+    {% endfor %}
+  </tbody>
+</table>

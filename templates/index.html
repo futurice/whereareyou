@@ -1,32 +1,38 @@
-Champions:
-{% for c in champions %}
-  {{ c }}
-{% endfor %}
+{% extends "base.html" %}
 
-<table>
-  <thead>
-  {% for column in headers %}
-    <th>
-      {{ column }}
-    </th>
-  {% endfor %}
-  </thead>
-  <tbody>
-    {% for mac in home_json %}
-      <tr>
-        <td>
-        {{mac}}
-        </td>
-        {% for loc in home_json[mac] %}
-        <td>
-          {% if home_json[mac][loc] %}
-            Yes
-          {% else %}
-            No
-          {% endif %}
-        </td>
+{% block content %}
+  {% with champions=champions %}
+      {% include "champions.html" %}
+  {% endwith %}
+
+  {% with locations=locations, training_json=training_json %}
+      {% include "training_table.html" %}
+  {% endwith %}
+
+  <center>
+    {% if ask_for_adding %}
+    Please tell me where you currently are:
+    <form action="add_training" method="POST" role="form" class="form-horizontal">
+      <div class="form-group">
+        <input type="hidden" name="mac" value="{{ mac }}">
+        {% for l in locations %}
+          <div class="radio">
+            <label>
+              <input type="radio" name="location" value="{{ l }}">
+              {{ l }}
+            </label>
+          </div>
         {% endfor %}
-      </tr>
-    {% endfor %}
-  </tbody>
-<table>
+      </div>
+      <div class="form-group">
+        <div class="col-sm-offset-2 col-sm-10">
+          <button type="submit" class="btn btn-default">Add</button>
+        </div>
+      </div>
+    </form>
+  {% else %}
+  The device you're currently using can't be detected by any slave.</br>
+  Please return to this page using another device or buy more slave devices for the office :)
+  {% endif %}
+</center>
+{% endblock %}

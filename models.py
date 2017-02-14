@@ -16,6 +16,31 @@ def init_models(db):
             avatar = db.Column(db.String(200))
             tokens = db.Column(db.Text)
 
+            def __repr__(self):
+                return '<User %r>' % (self.email)
+
+            def serialize(self):
+                serialized = { 'email': self.email }
+                for d in self.devices:
+                    serialized['devices'].append(d.serialize())
+                return serialized
+
+        class Device(db.Model):
+            id = db.Column(db.Integer, primary_key=True)
+            mac = db.Column(db.String(50), unique=True, nullable=False)
+            user_id = db.Column(db.Integer, db.ForeignKey('users.id'))
+            user = db.relationship('User', backref=db.backref('devices', lazy='dynamic'))
+
+            def __init__(self, mac, user):
+                self.mac = mac
+                self.user = user
+
+            def __repr__(self):
+                return '<Device %r>' % (self.mac)
+
+            def serialize(self):
+                return { 'mac': self.mac }
+
 
         class Location(db.Model):
             id = db.Column(db.Integer, primary_key=True)
@@ -32,9 +57,17 @@ def init_models(db):
 
 
         class Detection(db.Model):
+            __tablename__ = 'detection'
             id = db.Column(db.Integer, primary_key=True)
+            type = db.Column(db.String(20))
             mac = db.Column(db.String(50))
             last_updated = db.Column(db.DateTime)
+
+            __mapper_args__ = {
+                'polymorphic_on': type,
+                'polymorphic_identity':'detection',
+                'with_polymorphic':'*'
+            }
 
             def __init__(self, mac):
                 self.mac = mac
@@ -44,12 +77,22 @@ def init_models(db):
                 return '<Detection %r (%r)>' % (self.mac, str(self.last_updated))
 
             def serialize(self):
-                return { 'mac':self.mac }
+                serialized = { 'mac':self.mac , 'measurements': []}
+                for m in self.measurements:
+                    serialized['measurements'].append(m.serialize())
+                return serialized
+
 
 
         class TrainingDetection(Detection):
+            __tablename__ = 'training_detection'
+            id = db.Column(db.Integer, db.ForeignKey('detection.id'), primary_key=True)
             location_id = db.Column(db.Integer, db.ForeignKey('location.id'))
             location = db.relationship('Location', backref=db.backref('training_detections', lazy='dynamic'))
+
+            __mapper_args__ = {
+                    'polymorphic_identity':'training_detection',
+                }
 
             def __init__(self, mac, location):
                 self.mac = mac
@@ -60,7 +103,10 @@ def init_models(db):
                 return '<TrainingDetection at %r for %r (%r)>' % (self.location, self.mac, str(self.last_updated))
 
             def serialize(self):
-                return { 'mac':self.mac, 'location': self.location.serialize() }
+                serialized = { 'mac':self.mac, 'location': self.location.serialize(), 'measurements': []}
+                for m in self.measurements:
+                    serialized['measurements'].append(m.serialize())
+                return serialized
 
 
         class Measurement(db.Model):
@@ -80,7 +126,7 @@ def init_models(db):
 
             def serialize(self):
                 return { 'power': self.power, 'slave_id': self.slave_id }
-        models = (User, Location, Detection, TrainingDetection, Measurement)
+        models = (User, Location, Detection, TrainingDetection, Measurement, Device)
     return
 
 
