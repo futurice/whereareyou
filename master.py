@@ -117,27 +117,29 @@ def locations():
 
 @app.route('/update', methods=['POST'])
 def update():
-    mac = request.form['mac']
-    slave_id = request.form['slave_id']
-    power = int(request.form['power'])
+    data = request.get_json(silent=True)
+    for entry in data:
+        mac = entry['mac']
+        slave_id = entry['slave_id']
+        power = int(entry['power'])
 
-    detection = Detection.query.filter_by(mac=mac).first()
-    if not detection:
-        detection = Detection(mac)
-        db.session.add(detection)
+        detection = Detection.query.filter_by(mac=mac).first()
+        if not detection:
+            detection = Detection(mac)
+            db.session.add(detection)
 
-    measurement = None
-    for m in Detection.query.filter_by(mac=mac).first().measurements.all():
-        if m.slave_id == slave_id:
-            measurement = m
-            break
-    if measurement:
-        measurement.power = power
-    else:
-        measurement = Measurement(slave_id, power, detection)
-        db.session.add(measurement)
+        measurement = None
+        for m in Detection.query.filter_by(mac=mac).first().measurements.all():
+            if m.slave_id == slave_id:
+                measurement = m
+                break
+        if measurement:
+            measurement.power = power
+        else:
+            measurement = Measurement(slave_id, power, detection)
+            db.session.add(measurement)
     db.session.commit()
-    return "Updated measurement of " + slave_id + " for " + mac + " with " + str(power)
+    return "Updated measurement of " + str(len(data)) + " entries"
 
 
 @app.route('/add_training', methods=['POST'])

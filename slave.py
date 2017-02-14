@@ -69,13 +69,14 @@ class Slave(object):
 
 
     def send_measurements_to_server(self, df):
+        data = []
         for _, row in df.iterrows():
-            data = {
+            data.append({
               'mac': row["Station MAC"],
               'slave_id': self.slave_id,
               'power': row["Power"]
-            }
-            requests.post(self.master_address + '/update', data=data, verify=False)
+            })
+        requests.post(self.master_address + '/update', json=data, verify=False)
 
 
 def main():
