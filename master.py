@@ -2,7 +2,7 @@
 
 from app import app, db, User, Location, Detection, TrainingDetection, \
                 is_employee, Measurement, Device
-from flask import request, render_template
+from flask import request, render_template, make_response
 from flask_login import login_required, current_user
 from utils import get_mac_from_request
 import json
@@ -11,12 +11,20 @@ import yaml
 
 
 def load_data():
-    training = TrainingDetection(mac='AA', location=Location.query.all()[0])
-    m1 = Measurement('slave1', -50, training)
-    detection = Detection(mac='AC')
-    m2 = Measurement('slave1', -80, detection)
-    for x in [training, m1, detection, m2]:
-        db.session.add(x)
+    mac1 = 'AC'
+    mac2 = 'AD'
+    powers1 = [-10, -30, -60]
+    powers2 = [-20, -40, -70]
+    for i in range(3):
+        train = TrainingDetection(mac=mac1, location=Location.query.all()[i])
+        m1 = Measurement('slave1', powers1[i], train)
+        for x in [train, m1]:
+            db.session.add(x)
+    for i in range(3):
+        train = TrainingDetection(mac=mac2, location=Location.query.all()[i])
+        m1 = Measurement('slave1', powers2[i], train)
+        for x in [train, m1]:
+            db.session.add(x)
     db.session.commit()
 
 
@@ -40,7 +48,11 @@ def get_training_table(training_macs, locations):
     champions = []
     for mac in training_macs:
         is_champion = True
-        user = Device.query.filter_by(mac=mac).first().user
+        device = Device.query.filter_by(mac=mac).first()
+        if device:
+            user = device.user
+        else:
+            continue
         training_json[mac] = {'avatar_url': user.avatar}
         for location in locations:
             l = Location.query.filter_by(value=location).first()
@@ -52,6 +64,16 @@ def get_training_table(training_macs, locations):
             del training_json[mac]
             continue
     return champions, training_json
+
+
+def get_flattened_training_data():
+    training_json = [d.serialize() for d in TrainingDetection.query.all()]
+    for training in training_json:
+        for m in training["measurements"]:
+            training[m["slave_id"]] = m["power"]
+        del training["measurements"]
+        training["location"] = training["location"]["value"]
+    return training_json
 
 
 def get_context(**params):
@@ -113,6 +135,52 @@ def users():
 @is_employee
 def locations():
     return json.dumps([l.serialize() for l in Location.query.all()])
+
+
+@app.route('/training_data')
+@login_required
+@is_employee
+def training_data():
+    return json.dumps(get_flattened_training_data())
+
+
+@app.route("/training_plot.png")
+def training_plot():
+    import StringIO
+    import pandas as pd
+
+    from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
+    from matplotlib.figure import Figure
+
+    slave_id = request.args.get('slave_id', 'slave1')
+
+    df = pd.DataFrame.from_dict(get_flattened_training_data())
+    fig = Figure()
+    plt = fig.add_subplot(111)
+
+    colors = ['b', 'c', 'y', 'm', 'r']
+    macs = list(df.mac.unique())
+    locations = list(df.location.unique())
+    plots = []
+
+    plt.set_xlabel("MAC")
+    plt.set_ylabel("Power")
+    plt.set_yticks(range(-100, 0, 10), range(-100, 0, 10))
+    plt.set_xticks(range(len(macs)))
+    plt.set_xticklabels(macs)
+
+    for location_index in range(len(locations)):
+        sub_df = df.loc[df.location == locations[location_index]]
+        mac_indices = [macs.index(m) for m in list(sub_df.mac)]
+        plots.append(plt.scatter(mac_indices, sub_df[slave_id], marker='o', color=colors[location_index]))
+    plt.legend(plots, locations, loc='upper right')
+
+    canvas = FigureCanvas(fig)
+    png_output = StringIO.StringIO()
+    canvas.print_png(png_output)
+    response = make_response(png_output.getvalue())
+    response.headers['Content-Type'] = 'image/png'
+    return response
 
 
 @app.route('/update', methods=['POST'])
