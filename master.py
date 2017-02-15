@@ -2,6 +2,7 @@
 
 from app import app, db, User, Location, Detection, TrainingDetection, \
                 is_employee, Measurement, Device
+from training import train_models, predict_location
 from flask import request, render_template, make_response
 from flask_login import login_required, current_user
 from utils import get_mac_from_request
@@ -100,11 +101,13 @@ def index():
 
     if client_mac in current_detected_macs:
         ask_for_adding = True
+        current_location = predict_location(Detection.query.filter_by(type='detection', mac=client_mac).first())
 
     return render_template('index.html', **get_context(champions=champions,
                            training_json=training_json,
                            ask_for_adding=ask_for_adding,
-                           locations=locations, mac=client_mac))
+                           locations=locations, mac=client_mac,
+                           current_location=current_location))
 
 
 @app.route('/dashboard')
@@ -207,6 +210,7 @@ def update():
             measurement = Measurement(slave_id, power, detection)
             db.session.add(measurement)
     db.session.commit()
+    train_models(get_flattened_training_data())
     return "Updated measurement of " + str(len(data)) + " entries"
 
 

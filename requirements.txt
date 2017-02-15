@@ -8,3 +8,5 @@ python-dotenv
 requests
 requests_oauthlib
 tqdm
+sklearn
+scipy

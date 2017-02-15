@@ -93,3 +93,4 @@ database.db
 locations.yml
 ssl.*
 venv*
+*.pkl
