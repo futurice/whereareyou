@@ -10,3 +10,4 @@ requests_oauthlib
 tqdm
 sklearn
 scipy
+matplotlib

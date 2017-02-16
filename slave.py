@@ -1,4 +1,6 @@
 import pandas as pd
+import numpy as np
+from datetime import datetime
 import argparse
 import subprocess
 import os
@@ -16,6 +18,7 @@ class Slave(object):
     REMOVE_CSV_FILES_COMMAND = 'sudo rm -rf *.csv'
     WAITING_DELAY = 15
     UPDATE_INTERVAL = 5
+    MAXIMUM_AGE = 5 * 60
 
     def __init__(self, network_name, wifi_interface, slave_id, master_address):
         self.network_name = network_name
@@ -61,11 +64,15 @@ class Slave(object):
         df_stations = df_stations.rename(columns=new_header)
         return self.get_relevant_stations(df_stations)
 
-    def get_relevant_stations(self, df_stations):
-        df_stations = df_stations[["Station MAC", "BSSID", "Power"]]
+    def get_relevant_stations(self, df):
+        df_stations = df.copy()
+        df_stations = df_stations[["Station MAC", "Last time seen", "BSSID", "Power"]]
+        df_stations["Last time seen"] = df_stations["Last time seen"].apply(pd.to_datetime)
+        df_stations["Time delta"] = (datetime.now() - df_stations["Last time seen"])
+        df_stations = df_stations[df_stations["Time delta"] / np.timedelta64(1, 's') < Slave.MAXIMUM_AGE]
         #df_stations = df_stations.loc[df_stations["BSSID"] == self.access_point_mac]
         df_stations = df_stations[df_stations["Power"].astype(int) < 0]
-        return df_stations[["Station MAC", "Power"]]
+        return df_stations[["Station MAC", "Power", "Time delta"]]
 
 
     def send_measurements_to_server(self, df):

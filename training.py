@@ -10,7 +10,7 @@ without_mac_clf = None
 mac_clf = None
 
 def train_models(data):
-    train_model(data, with_mac=True)
+    #train_model(data, with_mac=True)
     train_model(data, with_mac=False)
 
 

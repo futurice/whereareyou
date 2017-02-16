@@ -92,8 +92,7 @@ def get_context(**params):
 @is_employee
 def index():
     ask_for_adding = False
-    client_mac = get_mac_from_request(request)
-    client_mac = 'AC'
+    client_mac = get_mac_from_request(request).upper()
     locations = [l.value for l in Location.query.all()]
     training_macs = [t.mac for t in TrainingDetection.query.group_by('mac').all()]
     current_detected_macs = [d.mac for d in Detection.query.filter_by(type='detection').all()]
@@ -101,7 +100,10 @@ def index():
 
     if client_mac in current_detected_macs:
         ask_for_adding = True
-        current_location = predict_location(Detection.query.filter_by(type='detection', mac=client_mac).first())
+        try:
+            current_location = predict_location(Detection.query.filter_by(type='detection', mac=client_mac).first())
+        except:
+            current_location = 'Not known, yet'
 
     return render_template('index.html', **get_context(champions=champions,
                            training_json=training_json,
@@ -210,7 +212,9 @@ def update():
             measurement = Measurement(slave_id, power, detection)
             db.session.add(measurement)
     db.session.commit()
-    train_models(get_flattened_training_data())
+    training_data = get_flattened_training_data()
+    if len(training_data) > 0:
+        train_models(training_data)
     return "Updated measurement of " + str(len(data)) + " entries"
 
 
@@ -220,7 +224,7 @@ def add_training():
         return "Sorry but you must be logged in to add training data."
     mac = request.form['mac']
     location = request.form['location']
-    current_detection = Detection.query.filter_by(type='detection', mac='AC').all()[0]
+    current_detection = Detection.query.filter_by(type='detection', mac=mac).all()[0]
     training_detection = TrainingDetection(location=Location.query.filter_by(value=location).all()[0], mac=mac)
     db.session.add(training_detection)
     for m in current_detection.measurements:
