@@ -8,7 +8,7 @@
       <script type="text/javascript">
         function createTimeline() {
           macTimeLines = {};
-          chart = new SmoothieChart({millisPerPixel:100, minValue:-100, maxValue:0});
+          chart = new SmoothieChart({millisPerPixel:300, minValue:-100, maxValue:0});
           setInterval(function() {
             $.getJSON( "/status", function( data ) {
               for(var i=0; i < data.length; i++) {
@@ -18,7 +18,7 @@
                   console.log("add " + data[i]['mac']);
                   macTimeLines[data[i]['mac']] = new TimeSeries();
                   macTimeLines[data[i]['mac']].append(new Date().getTime(), data[i]['measurements'][0]['power']);
-                  chart.addTimeSeries(macTimeLines[data[i]['mac']], { strokeStyle: 'rgba(0, 255, 0, 1)', fillStyle: 'rgba(0, 255, 0, 0.2)', lineWidth: 4 });
+                  chart.addTimeSeries(macTimeLines[data[i]['mac']], { strokeStyle: 'rgba(0, 255, 0, 1)', fillStyle: 'rgba(0, 255, 0, 0)', lineWidth: 4 });
                 }
               }
             });

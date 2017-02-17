@@ -1,3 +1,4 @@
+<table class="table"><thead><th>Saved Training Data</th></thead></table>
 <table class="table">
   <thead>
     <th>
@@ -14,6 +15,7 @@
       <tr>
         <td>
           <img class="profile-image img-circle" style="width: 25px; height: 25px" src="{{training_json[mac]['avatar_url']}}"></a>
+          {{training_json[mac]['email'].split('@') | first }}
         </td>
         {% for loc in locations %}
           {% if training_json[mac][loc] %}

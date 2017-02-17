@@ -54,7 +54,7 @@ def get_training_table(training_macs, locations):
             user = device.user
         else:
             continue
-        training_json[mac] = {'avatar_url': user.avatar}
+        training_json[mac] = {'avatar_url': user.avatar, 'email': user.email}
         for location in locations:
             l = Location.query.filter_by(value=location).first()
             training_json[mac][location] = (TrainingDetection.query.filter_by(mac=mac, location=l).first() is not None)
@@ -92,7 +92,9 @@ def get_context(**params):
 @is_employee
 def index():
     ask_for_adding = False
-    client_mac = get_mac_from_request(request).upper()
+    client_mac = get_mac_from_request(request)
+    client_mac = client_mac.upper() if client_mac is not None else "MY_MAC"
+    current_location = 'Not known, yet'
     locations = [l.value for l in Location.query.all()]
     training_macs = [t.mac for t in TrainingDetection.query.group_by('mac').all()]
     current_detected_macs = [d.mac for d in Detection.query.filter_by(type='detection').all()]
@@ -103,7 +105,7 @@ def index():
         try:
             current_location = predict_location(Detection.query.filter_by(type='detection', mac=client_mac).first())
         except:
-            current_location = 'Not known, yet'
+            print e
 
     return render_template('index.html', **get_context(champions=champions,
                            training_json=training_json,
@@ -191,9 +193,11 @@ def training_plot():
 @app.route('/update', methods=['POST'])
 def update():
     data = request.get_json(silent=True)
-    for entry in data:
+    macs = []
+    slave_id = data['slave_id']
+    for entry in data['data']:
         mac = entry['mac']
-        slave_id = entry['slave_id']
+        macs.append(mac)
         power = int(entry['power'])
 
         detection = Detection.query.filter_by(mac=mac).first()
@@ -211,6 +215,14 @@ def update():
         else:
             measurement = Measurement(slave_id, power, detection)
             db.session.add(measurement)
+    # Set not occured MACs to -100 power
+    detections = Detection.query.filter_by(type='detection').all()
+    for d in detections:
+        if d.mac not in macs:
+            measurement = Measurement.query.filter_by(detection=d, slave_id=slave_id).first()
+            if measurement.power != -100:
+                print "setting " + d.mac + " from " + str(measurement.power) + " to -100"
+                measurement.power = -100
     db.session.commit()
     training_data = get_flattened_training_data()
     if len(training_data) > 0:

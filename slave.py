@@ -80,10 +80,9 @@ class Slave(object):
         for _, row in df.iterrows():
             data.append({
               'mac': row["Station MAC"],
-              'slave_id': self.slave_id,
               'power': row["Power"]
             })
-        requests.post(self.master_address + '/update', json=data, verify=False)
+        requests.post(self.master_address + '/update', json={'slave_id': self.slave_id, 'data': data}, verify=False)
 
 
 def main():
