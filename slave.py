@@ -4,7 +4,9 @@ from datetime import datetime
 import argparse
 import subprocess
 import os
+import sys
 import time
+import traceback
 import requests
 from tqdm import tqdm
 from requests.packages.urllib3.exceptions import InsecureRequestWarning
@@ -38,12 +40,14 @@ class Slave(object):
             time.sleep(1)
         if not os.path.isfile(Slave.LOG_FILE + '-01.csv'):
             raise Exception(Slave.LOG_FILE + '-01.csv does not exist. Please make sure "' + self.airodump_command + '" succeeds.')
-        df = pd.read_csv(Slave.LOG_FILE + '-01.csv', delimiter=' *, *', engine='python')
+        df = pd.read_csv(Slave.LOG_FILE + '-01.csv', engine='c', error_bad_lines=False)
+        df = df.rename(index=str, columns=dict(zip(df.columns, [c.strip() for c in df.columns])))
+        df[["ESSID", "BSSID"]] = df[["ESSID", "BSSID"]].apply(lambda x: x.str.strip())
         self.access_point_mac = df.loc[df["ESSID"] == self.network_name].BSSID.unique()[0]
         while True:
             for _ in tqdm(range(Slave.UPDATE_INTERVAL)):
                 time.sleep(1)
-            df = pd.read_csv(Slave.LOG_FILE + '-01.csv', delimiter=' *, *', engine='python')
+            df = pd.read_csv(Slave.LOG_FILE + '-01.csv', engine='c', error_bad_lines=False)
             df_stations = self.get_stations(df)
             if len(df_stations) > 0:
                 self.send_measurements_to_server(df_stations)
@@ -66,6 +70,7 @@ class Slave(object):
 
     def get_relevant_stations(self, df):
         df_stations = df.copy()
+        df_stations = df_stations.rename(index=str, columns=dict(zip(df_stations.columns, [str(c).strip() for c in df_stations.columns])))
         df_stations = df_stations[["Station MAC", "Last time seen", "BSSID", "Power"]]
         df_stations["Last time seen"] = df_stations["Last time seen"].apply(pd.to_datetime)
         df_stations["Time delta"] = (datetime.now() - df_stations["Last time seen"])
@@ -98,6 +103,7 @@ def main():
         slave.run()
     except Exception, e:
         slave.stop_wifi_monitoring()
+        traceback.print_exc(file=sys.stdout)
         print e
 
 

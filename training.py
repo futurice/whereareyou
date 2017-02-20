@@ -1,4 +1,4 @@
-from sklearn.ensemble import RandomForestClassifier
+from sklearn.tree import DecisionTreeClassifier, export_graphviz
 from sklearn.preprocessing import LabelEncoder
 from sklearn.externals import joblib
 import pandas as pd
@@ -23,13 +23,15 @@ def train_model(data, with_mac=True):
         df = df.apply(LabelEncoder().fit_transform)
     else:
         df.drop("mac", axis=1, inplace=True)
-    clf = RandomForestClassifier()
+    clf = DecisionTreeClassifier()
     clf.fit(df, y)
     joblib.dump(clf, model_name)
     if with_mac and mac_clf is None:
         mac_clf = clf
     if not with_mac and without_mac_clf is None:
         without_mac_clf = clf
+    export_graphviz(clf, clf.estimators_[0], feature_names=df.columns,
+                    class_names=y.unique(), filled=True, rounded=True, out_file='model.dot')
 
 def predict_location(det):
     global without_mac_clf
