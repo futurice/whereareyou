@@ -3,12 +3,15 @@
 from app import app, db, User, Location, Detection, TrainingDetection, \
                 is_employee, Measurement, Device
 from training import train_models, predict_location
-from flask import request, render_template, make_response
+from flask import request, render_template, make_response, redirect, url_for
 from flask_login import login_required, current_user
 from utils import get_mac_from_request
+import datetime
 import json
 import os
 import yaml
+
+DEFAULT_MAC = "MY_MAC"
 
 
 def load_data():
@@ -88,12 +91,15 @@ def get_context(**params):
 
 
 @app.route('/')
+@app.route('/index')
 @login_required
 @is_employee
 def index():
     ask_for_adding = False
     client_mac = get_mac_from_request(request)
-    client_mac = client_mac.upper() if client_mac is not None else "MY_MAC"
+    if client_mac is not None:
+        client_mac = client_mac.upper()
+    client_mac = DEFAULT_MAC
     current_location = 'Not known, yet'
     locations = [l.value for l in Location.query.all()]
     training_macs = [t.mac for t in TrainingDetection.query.group_by('mac').all()]
@@ -104,7 +110,7 @@ def index():
         ask_for_adding = True
         try:
             current_location = predict_location(Detection.query.filter_by(type='detection', mac=client_mac).first())
-        except:
+        except Exception, e:
             print e
 
     return render_template('index.html', **get_context(champions=champions,
@@ -166,8 +172,8 @@ def training_plot():
     plt = fig.add_subplot(111)
 
     colors = ['b', 'c', 'y', 'm', 'r']
-    macs = list(df.mac.unique())
-    locations = list(df.location.unique())
+    macs = list(df.mac.unique()) if len(df) > 0 else []
+    locations = list(df.location.unique()) if len(df) > 0 else []
     plots = []
 
     plt.set_xlabel("MAC")
@@ -199,6 +205,8 @@ def update():
         mac = entry['mac']
         macs.append(mac)
         power = int(entry['power'])
+        last_seen = float(entry['last_seen'])
+        last_seen = datetime.datetime.fromtimestamp(last_seen)
 
         detection = Detection.query.filter_by(mac=mac).first()
         if not detection:
@@ -212,8 +220,9 @@ def update():
                 break
         if measurement:
             measurement.power = power
+            measurement.last_seen = last_seen
         else:
-            measurement = Measurement(slave_id, power, detection)
+            measurement = Measurement(slave_id, power, last_seen, detection)
             db.session.add(measurement)
     # Set not occured MACs to -100 power
     detections = Detection.query.filter_by(type='detection').all()
@@ -247,7 +256,7 @@ def add_training():
     if not Device.query.filter_by(user=user, mac=mac).first():
         db.session.add(Device(mac=mac, user=user))
         db.session.commit()
-    return index()
+    return redirect(url_for('index'))
 
 
 if __name__ == "__main__":

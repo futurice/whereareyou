@@ -18,7 +18,7 @@
                   console.log("add " + data[i]['mac']);
                   macTimeLines[data[i]['mac']] = new TimeSeries();
                   macTimeLines[data[i]['mac']].append(new Date().getTime(), data[i]['measurements'][0]['power']);
-                  chart.addTimeSeries(macTimeLines[data[i]['mac']], { strokeStyle: 'rgba(0, 255, 0, 1)', fillStyle: 'rgba(0, 255, 0, 0)', lineWidth: 4 });
+                  chart.addTimeSeries(macTimeLines[data[i]['mac']], { strokeStyle: '#'+(Math.random()*0xFFFFFF<<0).toString(16), lineWidth: 4 });
                 }
               }
             });

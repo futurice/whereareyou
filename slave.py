@@ -77,7 +77,7 @@ class Slave(object):
         df_stations = df_stations[df_stations["Time delta"] / np.timedelta64(1, 's') < Slave.MAXIMUM_AGE]
         #df_stations = df_stations.loc[df_stations["BSSID"] == self.access_point_mac]
         df_stations = df_stations[df_stations["Power"].astype(int) < 0]
-        return df_stations[["Station MAC", "Power", "Time delta"]]
+        return df_stations[["Station MAC", "Power", "Last time seen"]]
 
 
     def send_measurements_to_server(self, df):
@@ -85,7 +85,8 @@ class Slave(object):
         for _, row in df.iterrows():
             data.append({
               'mac': row["Station MAC"],
-              'power': row["Power"]
+              'power': row["Power"],
+              'last_seen': str(row["Last time seen"].value // 10 ** 9)
             })
         requests.post(self.master_address + '/update', json={'slave_id': self.slave_id, 'data': data}, verify=False)
 

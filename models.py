@@ -1,6 +1,6 @@
 """ DB Models """
 
-import datetime
+import time
 from flask_login import UserMixin
 
 models = None
@@ -61,7 +61,6 @@ def init_models(db):
             id = db.Column(db.Integer, primary_key=True)
             type = db.Column(db.String(20))
             mac = db.Column(db.String(50))
-            last_updated = db.Column(db.DateTime)
 
             __mapper_args__ = {
                 'polymorphic_on': type,
@@ -71,10 +70,9 @@ def init_models(db):
 
             def __init__(self, mac):
                 self.mac = mac
-                self.last_updated = datetime.datetime.now()
 
             def __repr__(self):
-                return '<Detection %r (%r)>' % (self.mac, str(self.last_updated))
+                return '<Detection %r>' % (self.mac)
 
             def serialize(self):
                 serialized = { 'mac':self.mac , 'measurements': []}
@@ -96,11 +94,10 @@ def init_models(db):
 
             def __init__(self, mac, location):
                 self.mac = mac
-                self.last_updated = datetime.datetime.now()
                 self.location = location
 
             def __repr__(self):
-                return '<TrainingDetection at %r for %r (%r)>' % (self.location, self.mac, str(self.last_updated))
+                return '<TrainingDetection at %r for %r (%r)>' % (self.location, self.mac)
 
             def serialize(self):
                 serialized = { 'mac':self.mac, 'location': self.location.serialize(), 'measurements': []}
@@ -113,19 +110,21 @@ def init_models(db):
             id = db.Column(db.Integer, primary_key=True)
             slave_id = db.Column(db.String)
             power = db.Column(db.Integer)
+            last_seen = db.Column(db.DateTime)
             detection_id = db.Column(db.Integer, db.ForeignKey('detection.id'))
             detection = db.relationship('Detection', backref=db.backref('measurements', lazy='dynamic'))
 
-            def __init__(self, slave_id, power, detection):
+            def __init__(self, slave_id, power, last_seen, detection):
                 self.slave_id = slave_id
                 self.power = power
+                self.last_seen = last_seen
                 self.detection = detection
 
             def __repr__(self):
                 return '<Measurement %r %r (%r)>' % (self.slave_id, self.power, self.detection)
 
             def serialize(self):
-                return { 'power': self.power, 'slave_id': self.slave_id }
+                return { 'power': self.power, 'slave_id': self.slave_id, 'last_seen': time.mktime(self.last_seen.timetuple()) }
         models = (User, Location, Detection, TrainingDetection, Measurement, Device)
     return
 
