@@ -29,6 +29,33 @@
     </head>
     <body onload="createTimeline()">
     <canvas id="chart" width="1000" height="500"></canvas>
+    <table class="table">
+      <thead>
+        <th>
+          Location
+        </th>
+        <th>
+          MAC
+        </th>
+      </thead>
+      <tbody>
+        {% for location in current_locations %}
+          <tr>
+            <td>
+              {{ location}}
+            </td>
+            <td>
+              <ul>
+                {% for mac in current_locations[location] %}
+                  <li>{{ mac }} ({{ current_locations[location][mac] }})</li>
+                {% endfor %}
+              </ul>
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+
     </body>
   </html>
 {% endblock %}

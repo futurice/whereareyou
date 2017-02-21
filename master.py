@@ -2,7 +2,7 @@
 
 from app import app, db, User, Location, Detection, TrainingDetection, \
                 is_employee, Measurement, Device
-from training import train_models, predict_location
+from training import train_models, predict_location, get_df_from_detection
 from flask import request, render_template, make_response, redirect, url_for
 from flask_login import login_required, current_user
 from utils import get_mac_from_request
@@ -10,8 +10,7 @@ import datetime
 import json
 import os
 import yaml
-
-DEFAULT_MAC = "MY_MAC"
+import pandas as pd
 
 
 def load_data():
@@ -99,7 +98,6 @@ def index():
     client_mac = get_mac_from_request(request)
     if client_mac is not None:
         client_mac = client_mac.upper()
-    client_mac = DEFAULT_MAC
     current_location = 'Not known, yet'
     locations = [l.value for l in Location.query.all()]
     training_macs = [t.mac for t in TrainingDetection.query.group_by('mac').all()]
@@ -124,7 +122,22 @@ def index():
 @login_required
 @is_employee
 def dashboard():
-    return render_template('dashboard.html', **get_context())
+    locations = [l.value for l in Location.query.all()]
+    df = get_df_from_detection(Detection.query.filter_by(type='detection').all())
+    if len(df) > 0:
+        df = predict_location(df)
+    else:
+        return render_template('dashboard.html', **get_context(current_locations=dict(locations, list())))
+    df['user'] = '?'
+    for index, row in df.iterrows():
+        device = Device.query.filter_by(mac=row['mac']).first()
+        if device:
+            df.loc[index, 'user'] = device.user.email.split("@")[0]
+    json_data = {}
+    for l in locations:
+        locations_df = df[df["predicted_location"] == l]
+        json_data[l] = dict(zip(list(locations_df.mac), list(locations_df.user)))
+    return render_template('dashboard.html', **get_context(current_locations=json_data))
 
 
 @app.route("/status")
@@ -233,9 +246,6 @@ def update():
                 print "setting " + d.mac + " from " + str(measurement.power) + " to -100"
                 measurement.power = -100
     db.session.commit()
-    training_data = get_flattened_training_data()
-    if len(training_data) > 0:
-        train_models(training_data)
     return "Updated measurement of " + str(len(data)) + " entries"
 
 
@@ -249,13 +259,16 @@ def add_training():
     training_detection = TrainingDetection(location=Location.query.filter_by(value=location).all()[0], mac=mac)
     db.session.add(training_detection)
     for m in current_detection.measurements:
-        measurement = Measurement(m.slave_id, m.power, training_detection)
+        measurement = Measurement(m.slave_id, m.power, datetime.datetime.now(), training_detection)
         db.session.add(measurement)
     db.session.commit()
     user = User.query.filter_by(email=current_user.email).first()
     if not Device.query.filter_by(user=user, mac=mac).first():
         db.session.add(Device(mac=mac, user=user))
         db.session.commit()
+    training_data = get_flattened_training_data()
+    if len(training_data) > 0:
+        train_models(training_data)
     return redirect(url_for('index'))
 
 

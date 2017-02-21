@@ -36,7 +36,7 @@ def init_models(db):
                 self.user = user
 
             def __repr__(self):
-                return '<Device %r>' % (self.mac)
+                return '<Device %r of %r>' % (self.mac, self.user.email.split("@")[0])
 
             def serialize(self):
                 return { 'mac': self.mac }

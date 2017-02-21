@@ -2,12 +2,16 @@ from sklearn.tree import DecisionTreeClassifier, export_graphviz
 from sklearn.preprocessing import LabelEncoder
 from sklearn.externals import joblib
 import pandas as pd
+import time
+import os
 
 MODEL_NAME = 'model.pkl'
 MODEL_MAC_NAME = 'model_mac.pkl'
+MAXIMUM_AGE = 5 * 60
 
 without_mac_clf = None
 mac_clf = None
+
 
 def train_models(data):
     #train_model(data, with_mac=True)
@@ -30,18 +34,37 @@ def train_model(data, with_mac=True):
         mac_clf = clf
     if not with_mac and without_mac_clf is None:
         without_mac_clf = clf
-    export_graphviz(clf, clf.estimators_[0], feature_names=df.columns,
+    export_graphviz(clf, feature_names=["Power_" + slave_id for slave_id in df.columns],
                     class_names=y.unique(), filled=True, rounded=True, out_file='model.dot')
+    os.system("dot -Tpng model.dot -o model.png")
 
-def predict_location(det):
+
+def get_df_from_detection(detection_list):
+    detection_data = []
+    too_old = False
+    for det in detection_list:
+        json_data = det.serialize()
+        for m in json_data["measurements"]:
+            json_data[m["slave_id"]] = m["power"]
+            # TODO: Fix timezone problem
+            if time.time() + 60*60 - m["last_seen"] > MAXIMUM_AGE:
+                too_old = True
+        del json_data["measurements"]
+        if too_old:
+            too_old = False
+            continue
+        else:
+            detection_data.append(json_data)
+    df = pd.DataFrame(detection_data)
+    return df
+
+
+def predict_location(df):
     global without_mac_clf
     if without_mac_clf is None:
         without_mac_clf = joblib.load(MODEL_NAME)
     clf = without_mac_clf
-    json_data = det.serialize()
-    for m in json_data["measurements"]:
-        json_data[m["slave_id"]] = m["power"]
-    del json_data["measurements"]
-    del json_data["mac"]
-    df = pd.DataFrame([json_data])
-    return clf.predict(df)[0]
+    macs = df.pop("mac")
+    df['predicted_location'] = clf.predict(df)
+    df['mac'] = macs
+    return df
