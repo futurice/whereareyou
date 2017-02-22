@@ -10,7 +10,11 @@ import datetime
 import json
 import os
 import yaml
+import time
+import math
 import pandas as pd
+import sys
+import traceback
 
 
 def load_data():
@@ -107,10 +111,11 @@ def index():
     if client_mac in current_detected_macs:
         ask_for_adding = True
         try:
-            current_location = predict_location(Detection.query.filter_by(type='detection', mac=client_mac).first())
+            df = get_df_from_detection([Detection.query.filter_by(type='detection', mac=client_mac).first()])
+            current_location = predict_location(df)["predicted_location"][0]
         except Exception, e:
+            traceback.print_exc(file=sys.stdout)
             print e
-
     return render_template('index.html', **get_context(champions=champions,
                            training_json=training_json,
                            ask_for_adding=ask_for_adding,
@@ -125,18 +130,23 @@ def dashboard():
     locations = [l.value for l in Location.query.all()]
     df = get_df_from_detection(Detection.query.filter_by(type='detection').all())
     if len(df) > 0:
+        df['user'] = '?'
+        df['avatar'] = ''
+        for index, row in df.iterrows():
+            device = Device.query.filter_by(mac=row['mac']).first()
+            if device:
+                df.loc[index, 'user'] = device.user.email.split("@")[0].replace('.', ' ').title()
+                df.loc[index, 'avatar'] = device.user.avatar
+        df = df[df["user"] != '?']
+        df["most_recent_seen"] = df["most_recent_seen"].apply(lambda timestamp: str(math.ceil((time.time() + 60 * 60 - timestamp) / 60)).split('.')[0] + " min")
         df = predict_location(df)
     else:
         return render_template('dashboard.html', **get_context(current_locations=dict(locations, list())))
-    df['user'] = '?'
-    for index, row in df.iterrows():
-        device = Device.query.filter_by(mac=row['mac']).first()
-        if device:
-            df.loc[index, 'user'] = device.user.email.split("@")[0]
+
     json_data = {}
     for l in locations:
         locations_df = df[df["predicted_location"] == l]
-        json_data[l] = dict(zip(list(locations_df.mac), list(locations_df.user)))
+        json_data[l] = locations_df.to_dict(orient='records')
     return render_template('dashboard.html', **get_context(current_locations=json_data))
 
 
@@ -237,14 +247,6 @@ def update():
         else:
             measurement = Measurement(slave_id, power, last_seen, detection)
             db.session.add(measurement)
-    # Set not occured MACs to -100 power
-    detections = Detection.query.filter_by(type='detection').all()
-    for d in detections:
-        if d.mac not in macs:
-            measurement = Measurement.query.filter_by(detection=d, slave_id=slave_id).first()
-            if measurement.power != -100:
-                print "setting " + d.mac + " from " + str(measurement.power) + " to -100"
-                measurement.power = -100
     db.session.commit()
     return "Updated measurement of " + str(len(data)) + " entries"
 

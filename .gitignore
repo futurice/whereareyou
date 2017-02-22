@@ -94,3 +94,5 @@ locations.yml
 ssl.*
 venv*
 *.pkl
+model.dot
+model.png

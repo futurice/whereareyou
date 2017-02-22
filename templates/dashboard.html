@@ -8,16 +8,25 @@
       <script type="text/javascript">
         function createTimeline() {
           macTimeLines = {};
+          MAX_AGE = 5 * 60;
           chart = new SmoothieChart({millisPerPixel:300, minValue:-100, maxValue:0});
           setInterval(function() {
             $.getJSON( "/status", function( data ) {
               for(var i=0; i < data.length; i++) {
                 if (macTimeLines.hasOwnProperty(data[i]['mac'])) {
-                  macTimeLines[data[i]['mac']].append(new Date().getTime(), data[i]['measurements'][0]['power']);
+                  if (Math.floor(Date.now() / 1000) + 60*60 - data[i]['measurements'][0]['last_seen'] < MAX_AGE) {
+                    macTimeLines[data[i]['mac']].append(new Date().getTime(), data[i]['measurements'][0]['power']);
+                  } else {
+                    macTimeLines[data[i]['mac']].append(new Date().getTime(), -100);
+                  }
                 } else {
                   console.log("add " + data[i]['mac']);
                   macTimeLines[data[i]['mac']] = new TimeSeries();
-                  macTimeLines[data[i]['mac']].append(new Date().getTime(), data[i]['measurements'][0]['power']);
+                  if (Math.floor(Date.now() / 1000) + 60*60 - data[i]['measurements'][0]['last_seen'] < MAX_AGE) {
+                    macTimeLines[data[i]['mac']].append(new Date().getTime(), data[i]['measurements'][0]['power']);
+                  } else {
+                    macTimeLines[data[i]['mac']].append(new Date().getTime(), -100);
+                  }
                   chart.addTimeSeries(macTimeLines[data[i]['mac']], { strokeStyle: '#'+(Math.random()*0xFFFFFF<<0).toString(16), lineWidth: 4 });
                 }
               }
@@ -28,11 +37,19 @@
       </script>
     </head>
     <body onload="createTimeline()">
-    <canvas id="chart" width="1000" height="500"></canvas>
+    <center>
+      <canvas id="chart" width="1000" height="500"></canvas>
+    </center>
     <table class="table">
       <thead>
         <th>
           Location
+        </th>
+        <th>
+          Employee
+        </th>
+        <th>
+          Last seen
         </th>
         <th>
           MAC
@@ -46,10 +63,21 @@
             </td>
             <td>
               <ul>
-                {% for mac in current_locations[location] %}
-                  <li>{{ mac }} ({{ current_locations[location][mac] }})</li>
+                {% for device in current_locations[location] %}
+                  <img class="profile-image img-circle" style="width: 25px; height: 25px" src="{{ device['avatar'] }}"></li>
+                  {{ device['user'] }}</br>
                 {% endfor %}
               </ul>
+            </td>
+            <td>
+              {% for device in current_locations[location] %}
+                {{ device['most_recent_seen'] }}</br>
+              {% endfor %}
+            </td>
+            <td>
+              {% for device in current_locations[location] %}
+                {{ device['mac'] }}</br>
+              {% endfor %}
             </td>
           </tr>
         {% endfor %}

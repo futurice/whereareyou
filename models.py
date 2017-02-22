@@ -97,7 +97,7 @@ def init_models(db):
                 self.location = location
 
             def __repr__(self):
-                return '<TrainingDetection at %r for %r (%r)>' % (self.location, self.mac)
+                return '<TrainingDetection at %r for %r with %r>' % (self.location, self.mac, [m.power for m in self.measurements.all()])
 
             def serialize(self):
                 serialized = { 'mac':self.mac, 'location': self.location.serialize(), 'measurements': []}

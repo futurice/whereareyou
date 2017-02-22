@@ -7,7 +7,8 @@ import os
 
 MODEL_NAME = 'model.pkl'
 MODEL_MAC_NAME = 'model_mac.pkl'
-MAXIMUM_AGE = 5 * 60
+MAXIMUM_AGE = 60 * 60
+POWER_SLAVE_PREFIX = "Power_Slave_"
 
 without_mac_clf = None
 mac_clf = None
@@ -42,14 +43,19 @@ def train_model(data, with_mac=True):
 def get_df_from_detection(detection_list):
     detection_data = []
     too_old = False
+    most_recent_seen = 0
     for det in detection_list:
+        most_recent_seen = 0
         json_data = det.serialize()
         for m in json_data["measurements"]:
-            json_data[m["slave_id"]] = m["power"]
+            json_data[POWER_SLAVE_PREFIX + m["slave_id"]] = m["power"]
+            if m["last_seen"] > most_recent_seen:
+                most_recent_seen = m["last_seen"]
             # TODO: Fix timezone problem
             if time.time() + 60*60 - m["last_seen"] > MAXIMUM_AGE:
                 too_old = True
         del json_data["measurements"]
+        json_data["most_recent_seen"] = most_recent_seen
         if too_old:
             too_old = False
             continue
@@ -64,7 +70,5 @@ def predict_location(df):
     if without_mac_clf is None:
         without_mac_clf = joblib.load(MODEL_NAME)
     clf = without_mac_clf
-    macs = df.pop("mac")
-    df['predicted_location'] = clf.predict(df)
-    df['mac'] = macs
+    df['predicted_location'] = clf.predict(df[[c for c in df.columns if c.startswith(POWER_SLAVE_PREFIX)]])
     return df
