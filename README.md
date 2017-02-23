@@ -19,6 +19,7 @@ Inspired by [whereami](https://github.com/kootenpv/whereami). Passive indoor loc
 `cp example.locations.yml locations.yml`
 - Copy `example.env` to `.env` and add the appropriate configuration keys  
 `cp example.env .env`
+- Adapt `static/office.svg` and `static/office_mapping.json` to your office (we recommend [this](http://editor.method.ac/) online editor). You can test your office mapping at /test_mapping.
 
 
 ## Usage

@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+
+{% block content %}
+<center>
+<HTML>
+<HEAD>
+  <script>
+    function addButtons() {
+      $.getJSON( "/office_mapping.json", function( mapping ) {
+        for(let key in mapping) {
+          var btn = document.createElement("BUTTON");
+          btn.innerHTML = mapping[key];
+          btn.addEventListener('click', function() {
+            document.getElementById(key).style.fill="yellow";
+            return false;
+          });
+          document.body.appendChild(btn);
+        }
+      });
+    }
+  </script>
+</HEAD>
+<BODY onload=addButtons()>
+{{ office_svg|safe }}
+</BODY>
+</HTML>
+</center>
+{% endblock %}

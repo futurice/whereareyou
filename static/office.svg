@@ -1,0 +1,30 @@
+<svg id="office" width="380" height="400" xmlns="http://www.w3.org/2000/svg">
+ <!-- Created with Method Draw - http://github.com/duopixel/Method-Draw/ -->
+ <g>
+  <title>background</title>
+  <rect fill="#fff" id="canvas_background" height="402" width="382" y="-1" x="-1"/>
+  <g display="none" overflow="visible" y="0" x="0" height="100%" width="100%" id="canvasGrid">
+   <rect fill="url(#gridpattern)" stroke-width="0" y="0" x="0" height="100%" width="100%"/>
+  </g>
+ </g>
+ <g>
+  <title>Layer 1</title>
+  <rect stroke="#000" id="svg_1" height="102.999996" width="50.999998" y="157.000002" x="253.000002" stroke-width="1.5" fill="#fff"/>
+  <rect stroke="#000" id="svg_2" height="69.999995" width="50.999998" y="171.000004" x="322.000002" stroke-width="1.5" fill="#fff"/>
+  <rect stroke="#000" id="svg_3" height="251.999988" width="19" y="68.000006" x="303" stroke-width="1.5" fill="#fff"/>
+  <rect stroke="#000" id="svg_4" height="19.999985" width="293.000004" y="68.000015" x="9.999994" stroke-width="1.5" fill="#fff"/>
+  <rect stroke="#000" id="svg_5" height="69.999995" width="50.999998" y="87.000004" x="322.000002" stroke-width="1.5" fill="#fff"/>
+  <rect stroke="#000" id="svg_6" height="62.999994" width="113.999995" y="5.000005" x="259.000005" stroke-width="1.5" fill="#fff"/>
+  <rect stroke="#000" id="svg_7" height="61.999994" width="74.999996" y="6.000005" x="172.000004" stroke-width="1.5" fill="#fff"/>
+  <rect stroke="#000" id="svg_8" height="61.999994" width="74.999996" y="88.000005" x="102.000004" stroke-width="1.5" fill="#fff"/>
+  <rect stroke="#000" id="svg_9" height="61.999994" width="74.999996" y="88.000005" x="10.000004" stroke-width="1.5" fill="#fff"/>
+  <rect stroke="#000" id="svg_10" height="19.999985" width="293.000004" y="300.000015" x="9.999994" stroke-width="1.5" fill="#fff"/>
+  <rect stroke="#000" id="svg_11" height="62.999994" width="187.999995" y="320.000005" x="185.000005" stroke-width="1.5" fill="#fff"/>
+  <rect stroke="#000" id="svg_12" height="61.999994" width="74.999996" y="320.000005" x="102.000004" stroke-width="1.5" fill="#fff"/>
+  <rect stroke="#000" id="svg_13" height="61.999994" width="83.999996" y="320.000005" x="10.000005" stroke-width="1.5" fill="#fff"/>
+  <rect stroke="#000" id="svg_14" height="61.999994" width="83.999996" y="238.000005" x="10.000005" stroke-width="1.5" fill="#fff"/>
+  <rect stroke="#000" id="svg_15" height="61.999994" width="74.999996" y="238.000005" x="102.000004" stroke-width="1.5" fill="#fff"/>
+  <rect id="svg_16" height="16" width="22" y="302" x="291" stroke-width="1.5" stroke="#ffffff" fill="#ffffff"/>
+  <rect id="svg_17" height="16" width="22" y="70" x="291" stroke-width="1.5" stroke="#ffffff" fill="#ffffff"/>
+ </g>
+</svg>

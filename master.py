@@ -145,10 +145,20 @@ def dashboard():
         return render_template('dashboard.html', **get_context(current_locations=dict(locations, list())))
 
     json_data = {}
-    for l in locations:
-        locations_df = df[df["predicted_location"] == l]
-        json_data[l] = locations_df.to_dict(orient='records')
+    if len(df) > 0:
+        for l in locations:
+            locations_df = df[df["predicted_location"] == l]
+            json_data[l] = locations_df.to_dict(orient='records')
     return render_template('dashboard.html', **get_context(current_locations=json_data))
+
+
+@app.route('/test_mapping')
+@login_required
+@is_employee
+def office():
+    with open("static/office.svg") as f:
+        office_svg = f.read()
+    return render_template('test_mapping.html', **get_context(office_svg=office_svg))
 
 
 @app.route("/status")
