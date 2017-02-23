@@ -15,7 +15,7 @@
       <tr>
         <td>
           <img class="profile-image img-circle" style="width: 25px; height: 25px" src="{{training_json[mac]['avatar_url']}}"></a>
-          {{training_json[mac]['email'].split('@') | first }}
+          {{training_json[mac]['name']}}
         </td>
         {% for loc in locations %}
           {% if training_json[mac][loc] %}

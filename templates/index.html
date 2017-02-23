@@ -1,3 +1,5 @@
+<body onload="createTimelineWithRefreshButton()">
+</body>
 {% extends "base.html" %}
 
 {% block content %}
@@ -34,6 +36,44 @@
   {% else %}
   The device you're currently using can't be detected by any slave.</br>
   Please return to this page using another device or buy more slave devices for the office :)
+  {% endif %}
+  {% if mac %}
+  <html>
+    <head>
+      <script type="text/javascript" src="/smoothie.js"></script>
+      <script type="text/javascript">
+        function createTimelineWithRefreshButton() {
+          $.ajaxSetup({ cache: false });
+          $("#refresh").click(function() {
+            $.ajax({type: "GET", url: 'https://github.com/holden-caulfield/js-fun-intro-talk/archive/master.zip?_=' + new Date().getTime()});
+          });
+
+          macTimeLines = {};
+          chart = new SmoothieChart({millisPerPixel:100, minValue:-100, maxValue:0});
+          setInterval(function() {
+            $.getJSON( "/status", function( data ) {
+              for(var i=0; i < data.length; i++) {
+                if (data[i]['mac'] == '{{ mac }}') {
+                  if (macTimeLines.hasOwnProperty(data[i]['mac'])) {
+                    macTimeLines[data[i]['mac']].append(new Date().getTime(), data[i]['measurements'][0]['power']);
+                  } else {
+                    console.log("add " + data[i]['mac']);
+                    macTimeLines[data[i]['mac']] = new TimeSeries();
+                    macTimeLines[data[i]['mac']].append(new Date().getTime(), data[i]['measurements'][0]['power']);
+                    chart.addTimeSeries(macTimeLines[data[i]['mac']], { strokeStyle: '#'+(Math.random()*0xFFFFFF<<0).toString(16), lineWidth: 4 });
+                  }
+                }
+              }
+            });
+          }, 1000);
+          chart.streamTo(document.getElementById("chart"), 500);
+        }
+      </script>
+    </head>
+    <canvas id="chart" width="500" height="300"></canvas>
+    <button id="refresh" class="btn btn-default">Refresh Wifi</button>
+    </body>
+  </html>
   {% endif %}
 </center>
 {% endblock %}

@@ -60,7 +60,7 @@ def get_training_table(training_macs, locations):
             user = device.user
         else:
             continue
-        training_json[mac] = {'avatar_url': user.avatar, 'email': user.email}
+        training_json[mac] = {'avatar_url': user.avatar, 'name': device.user.name if device.user.name is not None else device.user.email.split("@")[0].replace('.', ' ').title()}
         for location in locations:
             l = Location.query.filter_by(value=location).first()
             training_json[mac][location] = (TrainingDetection.query.filter_by(mac=mac, location=l).first() is not None)
@@ -135,11 +135,12 @@ def dashboard():
         for index, row in df.iterrows():
             device = Device.query.filter_by(mac=row['mac']).first()
             if device:
-                df.loc[index, 'user'] = device.user.email.split("@")[0].replace('.', ' ').title()
+                df.loc[index, 'user'] = device.user.name if device.user.name is not None else device.user.email.split("@")[0].replace('.', ' ').title()
                 df.loc[index, 'avatar'] = device.user.avatar
         df = df[df["user"] != '?']
         df["most_recent_seen"] = df["most_recent_seen"].apply(lambda timestamp: str(math.ceil((time.time() + 60 * 60 - timestamp) / 60)).split('.')[0] + " min")
-        df = predict_location(df)
+        if len(df) > 0:
+            df = predict_location(df)
     else:
         return render_template('dashboard.html', **get_context(current_locations=dict(locations, list())))
 

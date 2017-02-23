@@ -108,10 +108,12 @@ def callback():
         if resp.status_code == 200:
             user_data = resp.json()
             email = user_data['email']
+            name = user_data['email'].split("@")[0].replace('.', ' ').title()
             user = User.query.filter_by(email=email).first()
             if user is None:
                 user = User()
                 user.email = email
+                user.name = name
             user.name = user_data['name']
             user.tokens = json.dumps(token)
             user.avatar = user_data['picture']
