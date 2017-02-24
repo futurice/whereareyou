@@ -1,14 +1,14 @@
 {
-  "svg_1": "Kitchen",
-  "svg_2": "Duskos Disco",
-  "svg_5": "Raptor Room",
-  "svg_6": "Camelot",
-  "svg_7": "Showbox",
-  "svg_8": "HR Room",
-  "svg_9": "Sales Room",
-  "svg_11": "Big Room",
-  "svg_12": "Grumpy Room",
-  "svg_13": "Workshop",
-  "svg_14": "Aquarium",
-  "svg_15": "Reception"
+  "Kitchen": "svg_1",
+  "Duskos Disko": "svg_2",
+  "Raptor Room": "svg_5",
+  "Camelot": "svg_6",
+  "Showbox": "svg_7",
+  "HR Room": "svg_8",
+  "Sales Room": "svg_9",
+  "Big Room": "svg_11",
+  "Grumpy Room": "svg_12",
+  "Workshop": "svg_13",
+  "Aquarium": "svg_14",
+  "Reception": "svg_15"
 }

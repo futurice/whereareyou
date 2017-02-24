@@ -7,11 +7,12 @@
   <script>
     function addButtons() {
       $.getJSON( "/office_mapping.json", function( mapping ) {
-        for(let key in mapping) {
+        for(let room_name in mapping) {
+          let svg_id = mapping[room_name]
           var btn = document.createElement("BUTTON");
-          btn.innerHTML = mapping[key];
+          btn.innerHTML = room_name;
           btn.addEventListener('click', function() {
-            document.getElementById(key).style.fill="yellow";
+            document.getElementById(svg_id).style.fill="yellow";
             return false;
           });
           document.body.appendChild(btn);

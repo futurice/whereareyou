@@ -15,6 +15,9 @@ import math
 import pandas as pd
 import sys
 import traceback
+from xml.dom import minidom
+
+AVATAR_WIDTH_HEIGHT = 25
 
 
 def load_data():
@@ -60,7 +63,7 @@ def get_current_locations():
         for index, row in df.iterrows():
             device = Device.query.filter_by(mac=row['mac']).first()
             if device:
-                df.loc[index, 'user'] = device.user.name if device.user.name is not None else device.user.email.split("@")[0].replace('.', ' ').title()
+                df.loc[index, 'user'] = device.user.name if device.user.name else device.user.email.split("@")[0].replace('.', ' ').title()
                 df.loc[index, 'avatar'] = device.user.avatar
         df = df[df["user"] != '?']
         df["most_recent_seen"] = df["most_recent_seen"].apply(lambda timestamp: str(math.ceil((time.time() + 60 * 60 - timestamp) / 60)).split('.')[0] + " min")
@@ -84,7 +87,7 @@ def get_training_table(training_macs, locations):
             user = device.user
         else:
             continue
-        training_json[mac] = {'avatar_url': user.avatar, 'name': device.user.name if device.user.name is not None else device.user.email.split("@")[0].replace('.', ' ').title()}
+        training_json[mac] = {'avatar_url': user.avatar, 'name': device.user.name if device.user.name else device.user.email.split("@")[0].replace('.', ' ').title()}
         for location in locations:
             l = Location.query.filter_by(value=location).first()
             training_json[mac][location] = (TrainingDetection.query.filter_by(mac=mac, location=l).first() is not None)
@@ -105,6 +108,13 @@ def get_flattened_training_data():
         del training["measurements"]
         training["location"] = training["location"]["value"]
     return training_json
+
+
+def get_tag_item_by_id(doc, tag, id):
+    for child in doc.getElementsByTagName(tag):
+        if child.getAttribute('id') == id:
+            return child
+    return None
 
 
 def get_context(**params):
@@ -169,8 +179,33 @@ def test_mapping():
 def office():
     with open("static/office.svg") as f:
         office_svg = f.read()
-    test = get_image_for_map("willi", "https://lh3.googleusercontent.com/-XdUIqdMkCWA/AAAAAAAAAAI/AAAAAAAAAAA/4252rscbv5M/photo.jpg", 253, 157, 25)
-    office_svg = office_svg.replace("</svg>", test + '</svg>')
+    location_data = get_current_locations()
+    office_mapping = json.loads(open("static/office_mapping.json").read())
+    svg_doc = minidom.parseString(office_svg)
+    people_mappings = []
+
+    for location in location_data:
+        located_people = location_data[location]
+        if len(located_people) > 0:
+            x_offset = 0
+            y_offset = 0
+            svg_id = office_mapping[location]
+            rect = get_tag_item_by_id(svg_doc, 'rect', svg_id)
+            width, height = float(rect.getAttribute('width')), float(rect.getAttribute('height'))
+            x, y = float(rect.getAttribute("x")), float(rect.getAttribute("y"))
+
+            for person in location_data[location]:
+                remaining_width = width - x_offset * AVATAR_WIDTH_HEIGHT
+                if remaining_width < AVATAR_WIDTH_HEIGHT:
+                    y_offset += 1
+                    x_offset = 0
+                people_mappings.append(get_image_for_map(person["user"].replace(" ", "_"),
+                                                         person["avatar"],
+                                                         x + x_offset * AVATAR_WIDTH_HEIGHT,
+                                                         y + y_offset * AVATAR_WIDTH_HEIGHT, AVATAR_WIDTH_HEIGHT))
+                x_offset += 1
+
+    office_svg = office_svg.replace("</svg>", '</br>'.join(people_mappings) + '</svg>')
     return "<html><body>" + office_svg + "</body></html>"
 
 
@@ -182,7 +217,7 @@ def get_image_for_map(id, avatar_url, x, y, width_height):
     content = "<clipPath id='{}'>".format(id)
     content += '<circle cx="%(cx)s" cy="%(cy)s" r="%(radius)s" />' % locals()
     content += '</clipPath>'
-    content += '<image x="%(x)s" y="%(y)s" xlink:href="%(avatar_url)s" height="%(width_height)s" width="%(width_height)s" clip-path="url(#%(id)s"></image>' % locals()
+    content += '<image x="%(x)s" y="%(y)s" xlink:href="%(avatar_url)s" height="%(width_height)s" width="%(width_height)s" clip-path="url(#%(id)s)"></image>' % locals()
     return content
 
 
