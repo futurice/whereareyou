@@ -117,6 +117,40 @@ def get_tag_item_by_id(doc, tag, id):
     return None
 
 
+def get_office_map_with_persons():
+        with open("static/office.svg") as f:
+            office_svg = f.read()
+        location_data = get_current_locations()
+        office_mapping = json.loads(open("static/office_mapping.json").read())
+        svg_doc = minidom.parseString(office_svg)
+        people_mappings = []
+
+        for location in location_data:
+            located_people = location_data[location]
+            if len(located_people) > 0:
+                x_offset = 0
+                y_offset = 0
+                svg_id = office_mapping[location]
+                rect = get_tag_item_by_id(svg_doc, 'rect', svg_id)
+                width, height = float(rect.getAttribute('width')), float(rect.getAttribute('height'))
+                x, y = float(rect.getAttribute("x")), float(rect.getAttribute("y"))
+                x += 1
+
+                for person in location_data[location]:
+                    remaining_width = width - x_offset * AVATAR_WIDTH_HEIGHT
+                    if remaining_width < AVATAR_WIDTH_HEIGHT:
+                        y_offset += 1
+                        x_offset = 0
+                    people_mappings.append(get_image_for_map(person["user"].replace(" ", "_"),
+                                                             person["avatar"],
+                                                             x + x_offset * AVATAR_WIDTH_HEIGHT,
+                                                             y + y_offset * AVATAR_WIDTH_HEIGHT, AVATAR_WIDTH_HEIGHT))
+                    x_offset += 1
+
+        office_svg = office_svg.replace("</svg>", '</br>'.join(people_mappings) + '</svg>')
+        return office_svg
+
+
 def get_context(**params):
     if params:
         view_params = params
@@ -161,7 +195,8 @@ def index():
 @login_required
 @is_employee
 def dashboard():
-    return render_template('dashboard.html', **get_context(current_locations=get_current_locations()))
+    office_svg = get_office_map_with_persons()
+    return render_template('dashboard.html', **get_context(current_locations=get_current_locations(), office_svg=office_svg))
 
 
 @app.route('/test_mapping')
@@ -177,35 +212,7 @@ def test_mapping():
 @login_required
 @is_employee
 def office():
-    with open("static/office.svg") as f:
-        office_svg = f.read()
-    location_data = get_current_locations()
-    office_mapping = json.loads(open("static/office_mapping.json").read())
-    svg_doc = minidom.parseString(office_svg)
-    people_mappings = []
-
-    for location in location_data:
-        located_people = location_data[location]
-        if len(located_people) > 0:
-            x_offset = 0
-            y_offset = 0
-            svg_id = office_mapping[location]
-            rect = get_tag_item_by_id(svg_doc, 'rect', svg_id)
-            width, height = float(rect.getAttribute('width')), float(rect.getAttribute('height'))
-            x, y = float(rect.getAttribute("x")), float(rect.getAttribute("y"))
-
-            for person in location_data[location]:
-                remaining_width = width - x_offset * AVATAR_WIDTH_HEIGHT
-                if remaining_width < AVATAR_WIDTH_HEIGHT:
-                    y_offset += 1
-                    x_offset = 0
-                people_mappings.append(get_image_for_map(person["user"].replace(" ", "_"),
-                                                         person["avatar"],
-                                                         x + x_offset * AVATAR_WIDTH_HEIGHT,
-                                                         y + y_offset * AVATAR_WIDTH_HEIGHT, AVATAR_WIDTH_HEIGHT))
-                x_offset += 1
-
-    office_svg = office_svg.replace("</svg>", '</br>'.join(people_mappings) + '</svg>')
+    office_svg = get_office_map_with_persons()
     return "<html><body>" + office_svg + "</body></html>"
 
 
@@ -354,4 +361,5 @@ if __name__ == "__main__":
         if not os.path.isfile('ssl.crt') and not os.path.isfile('ssl.key'):
             make_ssl_devcert('./ssl', host='localhost')
         tls_params["ssl_context"] = ('./ssl.crt', './ssl.key')
-    app.run(debug=True, host='0.0.0.0', threaded=True, **tls_params)
+    app.run(debug=False, host='0.0.0.0', threaded=True, **tls_params)
+    

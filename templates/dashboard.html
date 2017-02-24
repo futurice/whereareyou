@@ -7,6 +7,11 @@
     <head>
       <script type="text/javascript" src="/smoothie.js"></script>
       <script type="text/javascript">
+        function setup() {
+          addLocationEventHandler()
+          createTimeline()
+        }
+
         function createTimeline() {
           macTimeLines = {};
           MAX_AGE = 5 * 60;
@@ -21,7 +26,6 @@
                     macTimeLines[data[i]['mac']].append(new Date().getTime(), -100);
                   }
                 } else {
-                  console.log("add " + data[i]['mac']);
                   macTimeLines[data[i]['mac']] = new TimeSeries();
                   if (Math.floor(Date.now() / 1000) + 60*60 - data[i]['measurements'][0]['last_seen'] < MAX_AGE) {
                     macTimeLines[data[i]['mac']].append(new Date().getTime(), data[i]['measurements'][0]['power']);
@@ -32,58 +36,78 @@
                 }
               }
             });
-          }, 1000);
+          }, 2500);
           chart.streamTo(document.getElementById("chart"), 500);
+        }
+
+        function addLocationEventHandler() {
+          $.getJSON( "/office_mapping.json", function( mapping ) {
+            var location_rows = document.getElementsByClassName("location_row");
+            for(var i = 0; i < location_rows.length; i++) {
+              let location_row = location_rows[i];
+              let location_name = location_row.getElementsByClassName("location_name")[0].innerText;
+              let svg_id = mapping[location_name];
+              location_row.addEventListener('mouseover', function() {
+                document.getElementById(svg_id).style.fill = "#349D4A";
+                return false;
+              });
+              location_row.addEventListener('mouseout', function() {
+                document.getElementById(svg_id).style.fill = "white";
+                return false;
+              });
+            }
+          });
         }
       </script>
     </head>
-    <body onload="createTimeline()">
+    <body onload="setup()">
     <center>
-      <canvas id="chart" width="1000" height="500"></canvas>
-    </center>
-    <table class="table">
-      <thead>
-        <th>
-          Location
-        </th>
-        <th>
-          Employee
-        </th>
-        <th>
-          Last seen
-        </th>
-        <th>
-          MAC
-        </th>
-      </thead>
-      <tbody>
-        {% for location in current_locations %}
-          <tr>
-            <td>
-              {{ location}}
-            </td>
-            <td>
-              <ul>
+      <canvas id="chart" width="1000" height="300"></canvas>
+      {{ office_svg | safe }}
+      <table class="table">
+        <thead>
+          <th>
+            Location
+          </th>
+          <th>
+            Employee
+          </th>
+          <th>
+            Last seen
+          </th>
+          <th>
+            MAC
+          </th>
+        </thead>
+        <tbody>
+          {% for location in current_locations %}
+            <tr class="location_row">
+              <td class="location_name">
+                {{ location}}
+              </td>
+              <td>
+                <ul>
+                  {% for device in current_locations[location] %}
+                    <img class="profile-image img-circle" style="width: 25px; height: 25px" src="{{ device['avatar'] }}"></li>
+                    {{ device['user'] }}</br>
+                  {% endfor %}
+                </ul>
+              </td>
+              <td>
                 {% for device in current_locations[location] %}
-                  <img class="profile-image img-circle" style="width: 25px; height: 25px" src="{{ device['avatar'] }}"></li>
-                  {{ device['user'] }}</br>
+                  {{ device['most_recent_seen'] }}</br>
                 {% endfor %}
-              </ul>
-            </td>
-            <td>
-              {% for device in current_locations[location] %}
-                {{ device['most_recent_seen'] }}</br>
-              {% endfor %}
-            </td>
-            <td>
-              {% for device in current_locations[location] %}
-                {{ device['mac'] }}</br>
-              {% endfor %}
-            </td>
-          </tr>
-        {% endfor %}
-      </tbody>
-    </table>
+              </td>
+              <td>
+                {% for device in current_locations[location] %}
+                  {{ device['mac'] }}</br>
+                {% endfor %}
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </center>
 
     </body>
   </html>
