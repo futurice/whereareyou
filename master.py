@@ -155,10 +155,33 @@ def dashboard():
 @app.route('/test_mapping')
 @login_required
 @is_employee
-def office():
+def test_mapping():
     with open("static/office.svg") as f:
         office_svg = f.read()
     return render_template('test_mapping.html', **get_context(office_svg=office_svg))
+
+
+@app.route('/office')
+@login_required
+@is_employee
+def office():
+    with open("static/office.svg") as f:
+        office_svg = f.read()
+    test = get_image_for_map("willi", "https://lh3.googleusercontent.com/-XdUIqdMkCWA/AAAAAAAAAAI/AAAAAAAAAAA/4252rscbv5M/photo.jpg", 253, 157, 25)
+    office_svg = office_svg.replace("</svg>", test + '</svg>')
+    return "<html><body>" + office_svg + "</body></html>"
+
+
+def get_image_for_map(id, avatar_url, x, y, width_height):
+    cx = x + width_height / 2
+    cy = y + width_height / 2
+    radius = width_height / 2
+
+    content = "<clipPath id='{}'>".format(id)
+    content += '<circle cx="%(cx)s" cy="%(cy)s" r="%(radius)s" />' % locals()
+    content += '</clipPath>'
+    content += '<image x="%(x)s" y="%(y)s" xlink:href="%(avatar_url)s" height="%(width_height)s" width="%(width_height)s" clip-path="url(#%(id)s"></image>' % locals()
+    return content
 
 
 @app.route("/status")
