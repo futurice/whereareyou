@@ -196,7 +196,9 @@ def index():
 @is_employee
 def dashboard():
     office_svg = get_office_map_with_persons()
-    return render_template('dashboard.html', **get_context(current_locations=get_current_locations(), office_svg=office_svg))
+    slave_ids = list(set([str(m.slave_id) for det in Detection.query.all() for m in det.measurements.all()]))
+    canvases = ['<table class="table"><thead><th>Current Measurements - Slave ' + slave_id + '</th></thead></table><canvas id="chart-' + slave_id + '" width="1000" height="300"></canvas></br>' for slave_id in slave_ids]
+    return render_template('dashboard.html', **get_context(current_locations=get_current_locations(), office_svg=office_svg, slave_ids=slave_ids, canvases=canvases))
 
 
 @app.route('/test_mapping')

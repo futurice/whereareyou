@@ -12,32 +12,53 @@
           createTimeline()
         }
 
+        function getMeasurementValue(last_seen, power) {
+          if (Math.floor(Date.now() / 1000) - last_seen < MAX_AGE) {
+            return (new Date().getTime(), power);
+          } else {
+            return (new Date().getTime(), -100);
+          }
+        }
+
         function createTimeline() {
-          macTimeLines = {};
+          SLAVES = {{ slave_ids | safe }};
           MAX_AGE = 5 * 60;
-          chart = new SmoothieChart({millisPerPixel:300, minValue:-100, maxValue:0});
+          charts = {};
+          macTimeLines = {};
+          macColors = {};
+
+          for(var slaves_index = 0; slaves_index < SLAVES.length; slaves_index++) {
+            slave_id = SLAVES[slaves_index];
+            charts[slave_id] = new SmoothieChart({millisPerPixel:300, minValue:-100, maxValue:0});
+            macTimeLines[slave_id] = {};
+          }
+
           setInterval(function() {
             $.getJSON( "/status", function( data ) {
-              for(var i=0; i < data.length; i++) {
-                if (macTimeLines.hasOwnProperty(data[i]['mac'])) {
-                  if (Math.floor(Date.now() / 1000) - data[i]['measurements'][0]['last_seen'] < MAX_AGE) {
-                    macTimeLines[data[i]['mac']].append(new Date().getTime(), data[i]['measurements'][0]['power']);
-                  } else {
-                    macTimeLines[data[i]['mac']].append(new Date().getTime(), -100);
+              for(var i = 0; i < data.length; i++) {
+                for(var measurement_index = 0; measurement_index < data[i]['measurements'].length; measurement_index++) {
+                  slave_id = data[i]['measurements'][measurement_index]['slave_id'];
+                  mac = data[i]['mac'];
+                  if (!macTimeLines[slave_id].hasOwnProperty(mac)) {
+                    macTimeLines[slave_id][mac] = new TimeSeries();
+                    if(!macColors.hasOwnProperty(mac)) {
+                      macColors[mac] = '#'+(Math.random()*0xFFFFFF<<0).toString(16);
+                    }
+                    charts[slave_id].addTimeSeries(macTimeLines[slave_id][mac], { strokeStyle: macColors[mac], lineWidth: 4 });
                   }
-                } else {
-                  macTimeLines[data[i]['mac']] = new TimeSeries();
-                  if (Math.floor(Date.now() / 1000) - data[i]['measurements'][0]['last_seen'] < MAX_AGE) {
-                    macTimeLines[data[i]['mac']].append(new Date().getTime(), data[i]['measurements'][0]['power']);
+                  if (Math.floor(Date.now() / 1000) - data[i]['measurements'][measurement_index]['last_seen'] < MAX_AGE) {
+                    macTimeLines[slave_id][mac].append(new Date().getTime(), data[i]['measurements'][measurement_index]['power']);
                   } else {
-                    macTimeLines[data[i]['mac']].append(new Date().getTime(), -100);
+                    macTimeLines[slave_id][mac].append(new Date().getTime(), -100);
                   }
-                  chart.addTimeSeries(macTimeLines[data[i]['mac']], { strokeStyle: '#'+(Math.random()*0xFFFFFF<<0).toString(16), lineWidth: 4 });
                 }
               }
             });
           }, 2500);
-          chart.streamTo(document.getElementById("chart"), 500);
+          for(var slaves_index = 0; slaves_index < SLAVES.length; slaves_index++) {
+            slave_id = SLAVES[slaves_index];
+            charts[slave_id].streamTo(document.getElementById("chart-" + slave_id), 500);
+          }
         }
 
         function addLocationEventHandler() {
@@ -62,7 +83,6 @@
     </head>
     <body onload="setup()">
     <center>
-      <canvas id="chart" width="1000" height="300"></canvas>
       {{ office_svg | safe }}
       <table class="table">
         <thead>
@@ -83,7 +103,7 @@
           {% for location in current_locations %}
             <tr class="location_row">
               <td class="location_name">
-                {{ location}}
+                {{ location }}
               </td>
               <td>
                 <ul>
@@ -108,7 +128,9 @@
         </tbody>
       </table>
     </center>
-
+    {% for canvas in canvases %}
+      {{ canvas | safe }}
+    {% endfor %}
     </body>
   </html>
 {% endblock %}
