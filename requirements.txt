@@ -2,6 +2,7 @@ flask
 flask_login
 flask_sqlalchemy
 Flask-SSLify
+pandas
 pyyaml
 pyOpenSSL
 python-dotenv

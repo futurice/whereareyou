@@ -362,4 +362,3 @@ if __name__ == "__main__":
             make_ssl_devcert('./ssl', host='localhost')
         tls_params["ssl_context"] = ('./ssl.crt', './ssl.key')
     app.run(debug=False, host='0.0.0.0', threaded=True, **tls_params)
-    

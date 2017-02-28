@@ -20,14 +20,14 @@
             $.getJSON( "/status", function( data ) {
               for(var i=0; i < data.length; i++) {
                 if (macTimeLines.hasOwnProperty(data[i]['mac'])) {
-                  if (Math.floor(Date.now() / 1000) + 60*60 - data[i]['measurements'][0]['last_seen'] < MAX_AGE) {
+                  if (Math.floor(Date.now() / 1000) - data[i]['measurements'][0]['last_seen'] < MAX_AGE) {
                     macTimeLines[data[i]['mac']].append(new Date().getTime(), data[i]['measurements'][0]['power']);
                   } else {
                     macTimeLines[data[i]['mac']].append(new Date().getTime(), -100);
                   }
                 } else {
                   macTimeLines[data[i]['mac']] = new TimeSeries();
-                  if (Math.floor(Date.now() / 1000) + 60*60 - data[i]['measurements'][0]['last_seen'] < MAX_AGE) {
+                  if (Math.floor(Date.now() / 1000) - data[i]['measurements'][0]['last_seen'] < MAX_AGE) {
                     macTimeLines[data[i]['mac']].append(new Date().getTime(), data[i]['measurements'][0]['power']);
                   } else {
                     macTimeLines[data[i]['mac']].append(new Date().getTime(), -100);
