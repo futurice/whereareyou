@@ -23,6 +23,8 @@ def train_model(data, with_mac=True):
     global without_mac_clf, mac_clf
     df = pd.DataFrame.from_dict(data)
     y = df.pop("location")
+    features = [f for f in df.columns if f is not 'mac']
+    df = df.rename(columns=dict(zip(features, [POWER_SLAVE_PREFIX + f for f in features])))
     model_name = MODEL_MAC_NAME if with_mac else MODEL_NAME
     if with_mac:
         df = df.apply(LabelEncoder().fit_transform)
@@ -35,8 +37,7 @@ def train_model(data, with_mac=True):
         mac_clf = clf
     if not with_mac and without_mac_clf is None:
         without_mac_clf = clf
-    export_graphviz(clf, feature_names=["Power_" + slave_id for slave_id in df.columns],
-                    class_names=y.unique(), filled=True, rounded=True, out_file='model.dot')
+    export_graphviz(clf, feature_names=list(df.columns), class_names=y.unique(), filled=True, rounded=True, out_file='model.dot')
     os.system("dot -Tpng model.dot -o model.png")
 
 
@@ -52,7 +53,7 @@ def get_df_from_detection(detection_list):
             if m["last_seen"] > most_recent_seen:
                 most_recent_seen = m["last_seen"]
             # TODO: Fix timezone problem
-            if time.time() + 60*60 - m["last_seen"] > MAXIMUM_AGE:
+            if time.time() - m["last_seen"] > MAXIMUM_AGE:
                 too_old = True
         del json_data["measurements"]
         json_data["most_recent_seen"] = most_recent_seen

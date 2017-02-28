@@ -2,7 +2,7 @@
 
 from app import app, db, User, Location, Detection, TrainingDetection, \
                 is_employee, Measurement, Device
-from training import train_models, predict_location, get_df_from_detection
+from training import train_models, predict_location, get_df_from_detection, POWER_SLAVE_PREFIX
 from flask import request, render_template, make_response, redirect, url_for
 from flask_login import login_required, current_user
 from utils import get_mac_from_request
@@ -269,8 +269,8 @@ def training_data():
     return json.dumps(get_flattened_training_data())
 
 
-@app.route("/training_plot.png")
-def training_plot():
+@app.route("/training_plot_macs.png")
+def training_plot_macs():
     import StringIO
     import pandas as pd
 
@@ -306,6 +306,37 @@ def training_plot():
     response = make_response(png_output.getvalue())
     response.headers['Content-Type'] = 'image/png'
     return response
+
+@app.route("/training_plot.png")
+def training_plot():
+    # Render image in another process to avoid segmentation fault
+    import subprocess
+    process = subprocess.Popen(['python', '-c', 'from master import get_training_image; get_training_image()'], stdout=subprocess.PIPE)
+    out, err = process.communicate()
+    response = make_response(out)
+    response.headers['Content-Type'] = 'image/png'
+    return response
+
+
+def get_training_image():
+    from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
+    from matplotlib.figure import Figure
+    import seaborn as sns
+    import StringIO
+
+    fig = Figure()
+    df = pd.DataFrame.from_dict(get_flattened_training_data())
+    features = [f for f in df.columns if f not in ['mac', 'location']]
+    df = df.rename(columns=dict(zip(features, [POWER_SLAVE_PREFIX + f for f in features])))
+
+    sns_plot = sns.pairplot(df, hue="location", vars=[POWER_SLAVE_PREFIX + f for f in features])
+    png_output = StringIO.StringIO()
+    sns_plot.savefig(png_output, format='png')
+
+    canvas = FigureCanvas(fig)
+    canvas.print_png(png_output)
+    print png_output.getvalue()
+    return
 
 
 @app.route('/update', methods=['POST'])
@@ -346,8 +377,8 @@ def add_training():
         return "Sorry but you must be logged in to add training data."
     mac = request.form['mac']
     location = request.form['location']
-    current_detection = Detection.query.filter_by(type='detection', mac=mac).all()[0]
-    training_detection = TrainingDetection(location=Location.query.filter_by(value=location).all()[0], mac=mac)
+    current_detection = Detection.query.filter_by(type='detection', mac=mac).first()
+    training_detection = TrainingDetection(location=Location.query.filter_by(value=location).first(), mac=mac)
     db.session.add(training_detection)
     for m in current_detection.measurements:
         measurement = Measurement(m.slave_id, m.power, datetime.datetime.now(), training_detection)

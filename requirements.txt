@@ -12,3 +12,4 @@ tqdm
 sklearn
 scipy
 matplotlib
+seaborn
