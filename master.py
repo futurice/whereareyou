@@ -151,6 +151,12 @@ def get_office_map_with_persons():
         return office_svg
 
 
+def get_dashboard_parameters():
+    slave_ids = list(set([str(m.slave_id) for det in Detection.query.all() for m in det.measurements.all()]))
+    canvases = ['<table class="table"><thead><th>Current Measurements - Slave ' + slave_id + '</th></thead></table><canvas id="chart-' + slave_id + '" width="1000" height="300"></canvas></br>' for slave_id in slave_ids]
+    return slave_ids, canvases
+
+
 def get_context(**params):
     if params:
         view_params = params
@@ -170,11 +176,13 @@ def index():
     client_mac = get_mac_from_request(request)
     if client_mac is not None:
         client_mac = client_mac.upper()
+    client_mac = "64:BC:0C:7F:48:83"
     current_location = 'Not known, yet'
     locations = [l.value for l in Location.query.all()]
     training_macs = [t.mac for t in TrainingDetection.query.group_by('mac').all()]
     current_detected_macs = [d.mac for d in Detection.query.filter_by(type='detection').all()]
     champions, training_json = get_training_table(training_macs, locations)
+    slave_ids, canvases = get_dashboard_parameters()
 
     if client_mac in current_detected_macs:
         ask_for_adding = True
@@ -188,7 +196,8 @@ def index():
                            training_json=training_json,
                            ask_for_adding=ask_for_adding,
                            locations=locations, mac=client_mac,
-                           current_location=current_location))
+                           current_location=current_location,
+                           slave_ids=slave_ids, canvases=canvases))
 
 
 @app.route('/dashboard')
