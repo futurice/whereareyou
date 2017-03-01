@@ -25,6 +25,10 @@ login_manager.session_protection = "strong"
 User, Location, Detection, TrainingDetection, Measurement, Device = get_models(db)
 
 
+def get_name_from_email(email):
+    return email.split("@")[0].replace('.', ' ').title()
+
+
 @login_manager.user_loader
 def load_user(user_id):
     return User.query.get(int(user_id))
@@ -108,13 +112,12 @@ def callback():
         if resp.status_code == 200:
             user_data = resp.json()
             email = user_data['email']
-            name = user_data['email'].split("@")[0].replace('.', ' ').title()
+            name = get_name_from_email(email)
             user = User.query.filter_by(email=email).first()
             if user is None:
                 user = User()
                 user.email = email
                 user.name = name
-            user.name = user_data['name']
             user.tokens = json.dumps(token)
             user.avatar = user_data['picture']
             db.session.add(user)

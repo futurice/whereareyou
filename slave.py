@@ -72,9 +72,10 @@ class Slave(object):
         df_stations = df.copy()
         df_stations = df_stations.rename(index=str, columns=dict(zip(df_stations.columns, [str(c).strip() for c in df_stations.columns])))
         df_stations = df_stations[["Station MAC", "Last time seen", "BSSID", "Power"]]
-        df_stations["Last time seen"] = df_stations["Last time seen"].apply(pd.to_datetime)
-        df_stations["Time delta"] = (datetime.now() - df_stations["Last time seen"])
-        df_stations = df_stations[df_stations["Time delta"] / np.timedelta64(1, 's') < Slave.MAXIMUM_AGE]
+        time_pattern = ' %Y-%m-%d %H:%M:%S'
+        df_stations["Last time seen"] = df_stations["Last time seen"].apply(lambda x: int(time.mktime(time.strptime(x, time_pattern))))
+        df_stations["Time delta"] = (time.time() / 1000 - df_stations["Last time seen"])
+        df_stations = df_stations[df_stations["Time delta"] < Slave.MAXIMUM_AGE]
         #df_stations = df_stations.loc[df_stations["BSSID"] == self.access_point_mac]
         df_stations = df_stations[df_stations["Power"].astype(int) < 0]
         return df_stations[["Station MAC", "Power", "Last time seen"]]
@@ -86,7 +87,7 @@ class Slave(object):
             data.append({
               'mac': row["Station MAC"],
               'power': row["Power"],
-              'last_seen': str(row["Last time seen"].value // 10 ** 9)
+              'last_seen': str(row["Last time seen"])
             })
         requests.post(self.master_address + '/update', json={'slave_id': self.slave_id, 'data': data}, verify=False)
 

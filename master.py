@@ -18,34 +18,16 @@ import traceback
 from xml.dom import minidom
 
 AVATAR_WIDTH_HEIGHT = 25
+OFFICE_MAPPING_PATH = 'static/office_mapping.json'
+OFFICE_SVG_PATH = 'static/office.svg'
 
 
-def load_data():
-    mac1 = 'AC'
-    mac2 = 'AD'
-    powers1 = [-10, -30, -60]
-    powers2 = [-20, -40, -70]
-    for i in range(3):
-        train = TrainingDetection(mac=mac1, location=Location.query.all()[i])
-        m1 = Measurement('slave1', powers1[i], train)
-        for x in [train, m1]:
-            db.session.add(x)
-    for i in range(3):
-        train = TrainingDetection(mac=mac2, location=Location.query.all()[i])
-        m1 = Measurement('slave1', powers2[i], train)
-        for x in [train, m1]:
-            db.session.add(x)
+def load_locations():
+    with open(OFFICE_MAPPING_PATH, 'r') as office_mapping:
+        data = json.loads(office_mapping.read())
+    for room_name in data.keys():
+        db.session.add(Location(room_name))
     db.session.commit()
-
-
-def seed():
-    with open("locations.yml", 'r') as stream:
-        try:
-            for l in yaml.load(stream):
-                db.session.add(Location(l))
-            db.session.commit()
-        except yaml.YAMLError as exc:
-            print(exc)
 
 
 def get_current_detections():
@@ -66,7 +48,7 @@ def get_current_locations():
                 df.loc[index, 'user'] = device.user.name if device.user.name else device.user.email.split("@")[0].replace('.', ' ').title()
                 df.loc[index, 'avatar'] = device.user.avatar
         df = df[df["user"] != '?']
-        df["most_recent_seen"] = df["most_recent_seen"].apply(lambda timestamp: str(math.ceil((time.time() + 60 * 60 - timestamp) / 60)).split('.')[0] + " min")
+        df["most_recent_seen"] = df["most_recent_seen"].apply(lambda timestamp: str(math.ceil((time.time() - timestamp) / 60)).split('.')[0] + " min")
         if len(df) > 0:
             df = predict_location(df)
 
@@ -118,10 +100,10 @@ def get_tag_item_by_id(doc, tag, id):
 
 
 def get_office_map_with_persons():
-        with open("static/office.svg") as f:
+        with open(OFFICE_SVG_PATH) as f:
             office_svg = f.read()
         location_data = get_current_locations()
-        office_mapping = json.loads(open("static/office_mapping.json").read())
+        office_mapping = json.loads(open(OFFICE_MAPPING_PATH).read())
         svg_doc = minidom.parseString(office_svg)
         people_mappings = []
 
@@ -176,7 +158,6 @@ def index():
     client_mac = get_mac_from_request(request)
     if client_mac is not None:
         client_mac = client_mac.upper()
-    client_mac = "64:BC:0C:7F:48:83"
     current_location = 'Not known, yet'
     locations = [l.value for l in Location.query.all()]
     training_macs = [t.mac for t in TrainingDetection.query.group_by('mac').all()]
