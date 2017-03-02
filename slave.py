@@ -78,11 +78,11 @@ class Slave(object):
         df_stations = df_stations[["Station MAC", "Last time seen", "BSSID", "Power"]]
         time_pattern = ' %Y-%m-%d %H:%M:%S'
         df_stations["Last time seen"] = df_stations["Last time seen"].apply(lambda x: int(time.mktime(time.strptime(x, time_pattern))))
-        df_stations["Time delta"] = (time.time() / 1000 - df_stations["Last time seen"])
+        df_stations["Time delta"] = (time.time() - df_stations["Last time seen"])
         df_stations = df_stations[df_stations["Time delta"] < Slave.MAXIMUM_AGE]
         #df_stations = df_stations.loc[df_stations["BSSID"] == self.access_point_mac]
         df_stations = df_stations[df_stations["Power"].astype(int) < 0]
-        return df_stations[["Station MAC", "Power", "Last time seen"]]
+        return df_stations[["Station MAC", "Power", "Last time seen", "Time delta"]]
 
 
     def send_measurements_to_server(self, df):
