@@ -1,14 +1,18 @@
+#!/usr/bin/python
+# -*- coding: iso-8859-15 -*-
+
 import pandas as pd
-import numpy as np
-from datetime import datetime
 import argparse
 import subprocess
 import os
-import sys
 import time
 import traceback
 import requests
 from tqdm import tqdm
+from urllib import urlencode
+from urllib import urlopen
+from dotenv import load_dotenv, find_dotenv
+load_dotenv(find_dotenv())
 from requests.packages.urllib3.exceptions import InsecureRequestWarning
 requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
 
@@ -41,7 +45,7 @@ class Slave(object):
         if not os.path.isfile(Slave.LOG_FILE + '-01.csv'):
             raise Exception(Slave.LOG_FILE + '-01.csv does not exist. Please make sure "' + self.airodump_command + '" succeeds.')
         df = pd.read_csv(Slave.LOG_FILE + '-01.csv', engine='c', error_bad_lines=False)
-        df = df.rename(index=str, columns=dict(zip(df.columns, [c.strip() for c in df.columns])))
+        df = df.rename(index=str, columns=dict(zip(df.columns, [str(c).strip() for c in df.columns])))
         df[["ESSID", "BSSID"]] = df[["ESSID", "BSSID"]].apply(lambda x: x.str.strip())
         self.access_point_mac = df.loc[df["ESSID"] == self.network_name].BSSID.unique()[0]
         while True:
@@ -92,6 +96,17 @@ class Slave(object):
         requests.post(self.master_address + '/update', json={'slave_id': self.slave_id, 'data': data}, verify=False)
 
 
+def send_notification_to_flowdock(content):
+    flowdock_token = os.environ.get("FLOW_TOKEN", None)
+    if flowdock_token:
+        params = urlencode({
+            'event': 'message',
+            'external_user_name': 'ErrorTracker',
+            'content': content
+        })
+        urlopen('https://api.flowdock.com/v1/messages/chat/' + flowdock_token, params)
+
+
 def main():
     parser = argparse.ArgumentParser(description='Monitor nearby Wifi devices that are connected to the same network')
     parser.add_argument('-n', '--network', required=True, help='Name of the shared network')
@@ -99,14 +114,18 @@ def main():
     parser.add_argument('-s', '--slave-id', required=True, help='Unique identifier of the slave device')
     parser.add_argument('-m', '--master-address', required=True, help='URL and port of the master device e.g. http://192.168.1.2:5000')
     args = parser.parse_args()
-    slave = Slave(args.network, args.wifi_interface, args.slave_id, args.master_address)
-    try:
-        slave.start_wifi_monitoring()
-        slave.run()
-    except Exception, e:
-        slave.stop_wifi_monitoring()
-        traceback.print_exc(file=sys.stdout)
-        print e
+    network_name, wifi_interface, slave_id, master_address = args.network, args.wifi_interface, args.slave_id, args.master_address
+    slave = Slave(network_name, wifi_interface, slave_id, master_address)
+    while True:
+        try:
+            slave.start_wifi_monitoring()
+            slave.run()
+        except Exception, e:
+            slave.stop_wifi_monitoring()
+            stack_trace = traceback.format_exc()
+            message = "@team Exception '{e}' from Slave '{slave_id}' for network {network_name} with interface {wifi_interface} with master {master_address}: {stack_trace}".format(**locals())
+            send_notification_to_flowdock(message)
+            time.sleep(60)
 
 
 if __name__ == '__main__':

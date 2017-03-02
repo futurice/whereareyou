@@ -71,5 +71,6 @@ def predict_location(df):
     if without_mac_clf is None:
         without_mac_clf = joblib.load(MODEL_NAME)
     clf = without_mac_clf
+    df.fillna(-100, inplace=True)
     df['predicted_location'] = clf.predict(df[[c for c in df.columns if c.startswith(POWER_SLAVE_PREFIX)]])
     return df
