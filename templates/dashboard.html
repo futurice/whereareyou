@@ -6,29 +6,130 @@
     <head>
       <script type="text/javascript" src="/smoothie.js"></script>
       <script type="text/javascript">
+        function setup() {
+          addLocationEventHandler()
+          createTimeline()
+        }
+
+        function getMeasurementValue(last_seen, power) {
+          if (Math.floor(Date.now() / 1000) - last_seen < MAX_AGE) {
+            return (new Date().getTime(), power);
+          } else {
+            return (new Date().getTime(), -100);
+          }
+        }
+
         function createTimeline() {
+          SLAVES = {{ slave_ids | safe }};
+          MAX_AGE = 5 * 60;
+          charts = {};
           macTimeLines = {};
-          chart = new SmoothieChart({millisPerPixel:100, minValue:-100, maxValue:0});
+          macColors = {};
+
+          for(var slaves_index = 0; slaves_index < SLAVES.length; slaves_index++) {
+            slave_id = SLAVES[slaves_index];
+            charts[slave_id] = new SmoothieChart({millisPerPixel:300, minValue:-100, maxValue:0});
+            macTimeLines[slave_id] = {};
+          }
+
           setInterval(function() {
             $.getJSON( "/status", function( data ) {
-              for(var i=0; i < data.length; i++) {
-                if (macTimeLines.hasOwnProperty(data[i]['mac'])) {
-                  macTimeLines[data[i]['mac']].append(new Date().getTime(), data[i]['measurements'][0]['power']);
-                } else {
-                  console.log("add " + data[i]['mac']);
-                  macTimeLines[data[i]['mac']] = new TimeSeries();
-                  macTimeLines[data[i]['mac']].append(new Date().getTime(), data[i]['measurements'][0]['power']);
-                  chart.addTimeSeries(macTimeLines[data[i]['mac']], { strokeStyle: 'rgba(0, 255, 0, 1)', fillStyle: 'rgba(0, 255, 0, 0.2)', lineWidth: 4 });
+              for(var i = 0; i < data.length; i++) {
+                for(var measurement_index = 0; measurement_index < data[i]['measurements'].length; measurement_index++) {
+                  slave_id = data[i]['measurements'][measurement_index]['slave_id'];
+                  mac = data[i]['mac'];
+                  if (!macTimeLines[slave_id].hasOwnProperty(mac)) {
+                    macTimeLines[slave_id][mac] = new TimeSeries();
+                    if(!macColors.hasOwnProperty(mac)) {
+                      macColors[mac] = '#'+(Math.random()*0xFFFFFF<<0).toString(16);
+                    }
+                    charts[slave_id].addTimeSeries(macTimeLines[slave_id][mac], { strokeStyle: macColors[mac], lineWidth: 4 });
+                  }
+                  if (Math.floor(Date.now() / 1000) - data[i]['measurements'][measurement_index]['last_seen'] < MAX_AGE) {
+                    macTimeLines[slave_id][mac].append(new Date().getTime(), data[i]['measurements'][measurement_index]['power']);
+                  } else {
+                    macTimeLines[slave_id][mac].append(new Date().getTime(), -100);
+                  }
                 }
               }
             });
-          }, 1000);
-          chart.streamTo(document.getElementById("chart"), 500);
+          }, 2500);
+          for(var slaves_index = 0; slaves_index < SLAVES.length; slaves_index++) {
+            slave_id = SLAVES[slaves_index];
+            charts[slave_id].streamTo(document.getElementById("chart-" + slave_id), 500);
+          }
+        }
+
+        function addLocationEventHandler() {
+          $.getJSON( "/office_mapping.json", function( mapping ) {
+            var location_rows = document.getElementsByClassName("location_row");
+            for(var i = 0; i < location_rows.length; i++) {
+              let location_row = location_rows[i];
+              let location_name = location_row.getElementsByClassName("location_name")[0].innerText;
+              let svg_id = mapping[location_name];
+              location_row.addEventListener('mouseover', function() {
+                document.getElementById(svg_id).style.fill = "#349D4A";
+                return false;
+              });
+              location_row.addEventListener('mouseout', function() {
+                document.getElementById(svg_id).style.fill = "white";
+                return false;
+              });
+            }
+          });
         }
       </script>
     </head>
-    <body onload="createTimeline()">
-    <canvas id="chart" width="1000" height="500"></canvas>
+    <body onload="setup()">
+    <center>
+      {{ office_svg | safe }}
+      <table class="table">
+        <thead>
+          <th>
+            Location
+          </th>
+          <th>
+            Employee
+          </th>
+          <th>
+            Last seen
+          </th>
+          <th>
+            MAC
+          </th>
+        </thead>
+        <tbody>
+          {% for location in current_locations %}
+            <tr class="location_row">
+              <td class="location_name">
+                {{ location }}
+              </td>
+              <td>
+                <ul>
+                  {% for device in current_locations[location] %}
+                    <img class="profile-image img-circle" style="width: 25px; height: 25px" src="{{ device['avatar'] }}"></li>
+                    {{ device['user'] }}</br>
+                  {% endfor %}
+                </ul>
+              </td>
+              <td>
+                {% for device in current_locations[location] %}
+                  {{ device['most_recent_seen'] }}</br>
+                {% endfor %}
+              </td>
+              <td>
+                {% for device in current_locations[location] %}
+                  {{ device['mac'] }}</br>
+                {% endfor %}
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </center>
+    {% for canvas in canvases %}
+      {{ canvas | safe }}
+    {% endfor %}
     </body>
   </html>
 {% endblock %}

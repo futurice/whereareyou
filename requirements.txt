@@ -2,9 +2,14 @@ flask
 flask_login
 flask_sqlalchemy
 Flask-SSLify
+pandas
 pyyaml
 pyOpenSSL
 python-dotenv
 requests
 requests_oauthlib
 tqdm
+sklearn
+scipy
+matplotlib
+seaborn

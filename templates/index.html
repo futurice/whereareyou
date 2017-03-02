@@ -1,3 +1,5 @@
+<body onload="setup()">
+</body>
 {% extends "base.html" %}
 
 {% block content %}
@@ -11,6 +13,7 @@
 
   <center>
     {% if ask_for_adding %}
+    Are you currently here? <b>{{ current_location }}</b></br>
     Please tell me where you currently are:
     <form action="add_training" method="POST" role="form" class="form-horizontal">
       <div class="form-group">
@@ -33,6 +36,76 @@
   {% else %}
   The device you're currently using can't be detected by any slave.</br>
   Please return to this page using another device or buy more slave devices for the office :)
+  {% endif %}
+  {% if mac %}
+  <html>
+    <head>
+      <script type="text/javascript" src="/smoothie.js"></script>
+      <script type="text/javascript">
+        function setup() {
+          createTimeline()
+        }
+
+        function getMeasurementValue(last_seen, power) {
+          if (Math.floor(Date.now() / 1000) - last_seen < MAX_AGE) {
+            return (new Date().getTime(), power);
+          } else {
+            return (new Date().getTime(), -100);
+          }
+        }
+
+        function createTimeline() {
+          SLAVES = {{ slave_ids | safe }};
+          MAX_AGE = 5 * 60;
+          charts = {};
+          macTimeLines = {};
+          macColors = {};
+
+          for(var slaves_index = 0; slaves_index < SLAVES.length; slaves_index++) {
+            slave_id = SLAVES[slaves_index];
+            charts[slave_id] = new SmoothieChart({millisPerPixel:300, minValue:-100, maxValue:0});
+            macTimeLines[slave_id] = {};
+          }
+
+          setInterval(function() {
+            $.getJSON( "/status", function( data ) {
+              for(var i = 0; i < data.length; i++) {
+                if (data[i]['mac'] != '{{ mac }}')
+                  continue;
+                for(var measurement_index = 0; measurement_index < data[i]['measurements'].length; measurement_index++) {
+                  slave_id = data[i]['measurements'][measurement_index]['slave_id'];
+                  mac = data[i]['mac'];
+                  if (!macTimeLines[slave_id].hasOwnProperty(mac)) {
+                    macTimeLines[slave_id][mac] = new TimeSeries();
+                    if(!macColors.hasOwnProperty(mac)) {
+                      macColors[mac] = '#'+(Math.random()*0xFFFFFF<<0).toString(16);
+                    }
+                    charts[slave_id].addTimeSeries(macTimeLines[slave_id][mac], { strokeStyle: macColors[mac], lineWidth: 4 });
+                  }
+                  if (Math.floor(Date.now() / 1000) - data[i]['measurements'][measurement_index]['last_seen'] < MAX_AGE) {
+                    macTimeLines[slave_id][mac].append(new Date().getTime(), data[i]['measurements'][measurement_index]['power']);
+                  } else {
+                    macTimeLines[slave_id][mac].append(new Date().getTime(), -100);
+                  }
+                }
+              }
+            });
+          }, 2500);
+          for(var slaves_index = 0; slaves_index < SLAVES.length; slaves_index++) {
+            slave_id = SLAVES[slaves_index];
+            charts[slave_id].streamTo(document.getElementById("chart-" + slave_id), 500);
+          }
+        }
+      </script>
+    </head>
+    <center>
+      {% for canvas in canvases %}
+        {{ canvas | safe }}
+      {% endfor %}
+    </center>
+    <button id="refresh" class="btn btn-default">Refresh Wifi</button>
+    </body>
+  </html>
   {% endif %}
 </center>
 {% endblock %}

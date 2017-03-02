@@ -1,8 +1,12 @@
 import pandas as pd
+import numpy as np
+from datetime import datetime
 import argparse
 import subprocess
 import os
+import sys
 import time
+import traceback
 import requests
 from tqdm import tqdm
 from requests.packages.urllib3.exceptions import InsecureRequestWarning
@@ -16,6 +20,7 @@ class Slave(object):
     REMOVE_CSV_FILES_COMMAND = 'sudo rm -rf *.csv'
     WAITING_DELAY = 15
     UPDATE_INTERVAL = 5
+    MAXIMUM_AGE = 5 * 60
 
     def __init__(self, network_name, wifi_interface, slave_id, master_address):
         self.network_name = network_name
@@ -35,12 +40,14 @@ class Slave(object):
             time.sleep(1)
         if not os.path.isfile(Slave.LOG_FILE + '-01.csv'):
             raise Exception(Slave.LOG_FILE + '-01.csv does not exist. Please make sure "' + self.airodump_command + '" succeeds.')
-        df = pd.read_csv(Slave.LOG_FILE + '-01.csv', delimiter=' *, *', engine='python')
+        df = pd.read_csv(Slave.LOG_FILE + '-01.csv', engine='c', error_bad_lines=False)
+        df = df.rename(index=str, columns=dict(zip(df.columns, [c.strip() for c in df.columns])))
+        df[["ESSID", "BSSID"]] = df[["ESSID", "BSSID"]].apply(lambda x: x.str.strip())
         self.access_point_mac = df.loc[df["ESSID"] == self.network_name].BSSID.unique()[0]
         while True:
             for _ in tqdm(range(Slave.UPDATE_INTERVAL)):
                 time.sleep(1)
-            df = pd.read_csv(Slave.LOG_FILE + '-01.csv', delimiter=' *, *', engine='python')
+            df = pd.read_csv(Slave.LOG_FILE + '-01.csv', engine='c', error_bad_lines=False)
             df_stations = self.get_stations(df)
             if len(df_stations) > 0:
                 self.send_measurements_to_server(df_stations)
@@ -61,11 +68,17 @@ class Slave(object):
         df_stations = df_stations.rename(columns=new_header)
         return self.get_relevant_stations(df_stations)
 
-    def get_relevant_stations(self, df_stations):
-        df_stations = df_stations[["Station MAC", "BSSID", "Power"]]
+    def get_relevant_stations(self, df):
+        df_stations = df.copy()
+        df_stations = df_stations.rename(index=str, columns=dict(zip(df_stations.columns, [str(c).strip() for c in df_stations.columns])))
+        df_stations = df_stations[["Station MAC", "Last time seen", "BSSID", "Power"]]
+        time_pattern = ' %Y-%m-%d %H:%M:%S'
+        df_stations["Last time seen"] = df_stations["Last time seen"].apply(lambda x: int(time.mktime(time.strptime(x, time_pattern))))
+        df_stations["Time delta"] = (time.time() / 1000 - df_stations["Last time seen"])
+        df_stations = df_stations[df_stations["Time delta"] < Slave.MAXIMUM_AGE]
         #df_stations = df_stations.loc[df_stations["BSSID"] == self.access_point_mac]
         df_stations = df_stations[df_stations["Power"].astype(int) < 0]
-        return df_stations[["Station MAC", "Power"]]
+        return df_stations[["Station MAC", "Power", "Last time seen"]]
 
 
     def send_measurements_to_server(self, df):
@@ -73,10 +86,10 @@ class Slave(object):
         for _, row in df.iterrows():
             data.append({
               'mac': row["Station MAC"],
-              'slave_id': self.slave_id,
-              'power': row["Power"]
+              'power': row["Power"],
+              'last_seen': str(row["Last time seen"])
             })
-        requests.post(self.master_address + '/update', json=data, verify=False)
+        requests.post(self.master_address + '/update', json={'slave_id': self.slave_id, 'data': data}, verify=False)
 
 
 def main():
@@ -92,6 +105,7 @@ def main():
         slave.run()
     except Exception, e:
         slave.stop_wifi_monitoring()
+        traceback.print_exc(file=sys.stdout)
         print e
 
 
