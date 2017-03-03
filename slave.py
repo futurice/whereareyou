@@ -44,7 +44,10 @@ class Slave(object):
             time.sleep(1)
         if not os.path.isfile(Slave.LOG_FILE + '-01.csv'):
             raise Exception(Slave.LOG_FILE + '-01.csv does not exist. Please make sure "' + self.airodump_command + '" succeeds.')
-        df = pd.read_csv(Slave.LOG_FILE + '-01.csv', engine='c', error_bad_lines=False)
+        try:
+            df = pd.read_csv(Slave.LOG_FILE + '-01.csv', engine='c', error_bad_lines=False)
+        except:
+            raise Exception("Can't read data CSV - content: " + open(Slave.LOG_FILE + "-01.csv").read())
         df = df.rename(index=str, columns=dict(zip(df.columns, [str(c).strip() for c in df.columns])))
         df[["ESSID", "BSSID"]] = df[["ESSID", "BSSID"]].apply(lambda x: x.str.strip())
         self.access_point_mac = df.loc[df["ESSID"] == self.network_name].BSSID.unique()[0]
