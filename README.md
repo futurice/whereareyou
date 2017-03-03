@@ -31,6 +31,15 @@ Inspired by [whereami](https://github.com/kootenpv/whereami). Passive indoor loc
   * NETWORK - Wifi network monitored people should be logged in to
   * MASTER_ADDRESS - Internal IP address of the master server
 - Run `bash run.sh` on every slave device
+- To run it every time your Linux device finished booting, put this in your `/etc/profile` file:  
+```bash
+CMD="sudo bash /home/pi/whereareyou/run.sh"
+COUNT=$(ps aux | grep $CMD | wc -l)
+if [ $COUNT -eq 1 ]; then
+    echo "Starting whereareyou"
+    eval "$CMD &"
+fi
+```
 
 ### Master
 - Run `master.py` on a device that can be accessed by the slaves in your internal network  
