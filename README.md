@@ -11,8 +11,7 @@ Inspired by [whereami](https://github.com/kootenpv/whereami). Passive indoor loc
 ### Slaves
 - Install aircrack-ng  
 `apt-get install aircrack-ng`  
-- Set your Wifi interface to monitor mode e.g.  
-`airmon-ng start wlp3s0`
+
 
 ### Master  
 - Copy `example.env` to `.env` and add the appropriate configuration keys  
@@ -24,8 +23,14 @@ Inspired by [whereami](https://github.com/kootenpv/whereami). Passive indoor loc
 
 ## Usage
 ### Slaves
-- Run `slave.py` on every device at the location you're owning  
-`python slave.py --network ItHurtsWhenIP --wifi-interface mon0 --master-address https://192.168.0.2:5000 --slave-id MySlaveId`  
+- Copy `example.run.sh` to `run.sh` and adapt the configuration to your needs  
+`cp example.run.sh run.sh`  
+  * FLOW_TOKEN - token for the Flowdock channel that should receive notifications when the slave crashes
+  * SLAVE_ID - unique identifier of the slave
+  * INTERFACE - Wifi interface that can be set to monitor mode
+  * NETWORK - Wifi network monitored people should be logged in to
+  * MASTER_ADDRESS - Internal IP address of the master server
+- Run `bash run.sh` on every slave device
 
 ### Master
 - Run `master.py` on a device that can be accessed by the slaves in your internal network  
