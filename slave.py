@@ -80,7 +80,10 @@ class Slave(object):
         df_stations = df_stations.rename(index=str, columns=dict(zip(df_stations.columns, [str(c).strip() for c in df_stations.columns])))
         df_stations = df_stations[["Station MAC", "Last time seen", "BSSID", "Power"]]
         time_pattern = ' %Y-%m-%d %H:%M:%S'
-        df_stations["Last time seen"] = df_stations["Last time seen"].apply(lambda x: int(time.mktime(time.strptime(x, time_pattern))))
+        try:
+            df_stations["Last time seen"] = df_stations["Last time seen"].apply(lambda x: int(time.mktime(time.strptime(x, time_pattern))))
+        except:
+            raise Exception("Can't parse " + df_stations["Last time seen"])
         df_stations["Time delta"] = (time.time() - df_stations["Last time seen"])
         df_stations = df_stations[df_stations["Time delta"] < Slave.MAXIMUM_AGE]
         #df_stations = df_stations.loc[df_stations["BSSID"] == self.access_point_mac]
