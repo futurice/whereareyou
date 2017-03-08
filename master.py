@@ -20,7 +20,7 @@ from xml.dom import minidom
 AVATAR_WIDTH_HEIGHT = 25
 OFFICE_MAPPING_PATH = 'static/office_mapping.json'
 OFFICE_SVG_PATH = 'static/office.svg'
-
+OLD_TIME_DELTA = 1
 
 def load_locations():
     with open(OFFICE_MAPPING_PATH, 'r') as office_mapping:
@@ -149,6 +149,15 @@ def get_context(**params):
     return view_params
 
 
+def remove_old_detections():
+    db.session.query(Measurement).filter(Measurement.last_seen < datetime.datetime.utcnow() - datetime.timedelta(days=OLD_TIME_DELTA)).delete()
+    db.session.commit()
+    for det in Detection.query.all():
+        if len(det.measurements.all()) == 0:
+            db.session.delete(det)
+    db.session.commit()
+
+
 @app.route('/')
 @app.route('/index')
 @login_required
@@ -181,14 +190,20 @@ def index():
                            slave_ids=slave_ids, canvases=canvases))
 
 
+@app.route('/current_locations')
+@login_required
+@is_employee
+def current_locations():
+    return json.dumps(get_current_locations())
+
+
 @app.route('/dashboard')
 @login_required
 @is_employee
 def dashboard():
-    office_svg = get_office_map_with_persons()
     slave_ids = list(set([str(m.slave_id) for det in Detection.query.all() for m in det.measurements.all()]))
     canvases = ['<table class="table"><thead><th>Current Measurements - Slave ' + slave_id + '</th></thead></table><canvas id="chart-' + slave_id + '" width="1000" height="300"></canvas></br>' for slave_id in slave_ids]
-    return render_template('dashboard.html', **get_context(current_locations=get_current_locations(), office_svg=office_svg, slave_ids=slave_ids, canvases=canvases))
+    return render_template('dashboard.html', **get_context(slave_ids=slave_ids, canvases=canvases))
 
 
 @app.route('/test_mapping')
@@ -200,12 +215,11 @@ def test_mapping():
     return render_template('test_mapping.html', **get_context(office_svg=office_svg))
 
 
-@app.route('/office')
+@app.route('/office_map')
 @login_required
 @is_employee
 def office():
-    office_svg = get_office_map_with_persons()
-    return "<html><body>" + office_svg + "</body></html>"
+    return get_office_map_with_persons()
 
 
 def get_image_for_map(id, avatar_url, x, y, width_height):
@@ -287,6 +301,7 @@ def training_plot_macs():
     response = make_response(png_output.getvalue())
     response.headers['Content-Type'] = 'image/png'
     return response
+
 
 @app.route("/training_plot.png")
 def training_plot():
