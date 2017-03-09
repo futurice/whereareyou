@@ -66,26 +66,35 @@
 
         function buildTable() {
           $.getJSON( "/current_locations", function( data ) {
-            $("#current_locations_table").empty();
+            table = $("#current_locations_table");
+            table.empty();
             for(var room in data) {
-              table_row = '<tr class="location_row"><td class="location_name">' + room + '</td>';
-              table_row += '<td>'
+              var tr = $('<tr>').attr('class', 'location_row');
+              var td_room = $('<td>').attr('class', 'location_name').text(room);
+              var td_user = $('<td>');
+              var ul = $('ul');
               for(var device_index = 0; device_index < data[room].length; device_index++) {
                 var device = data[room][device_index];
-                table_row += '<ul><img class="profile-image img-circle" style="width: 25px; height: 25px" src="' + device['avatar'] +'"></li>' + device['user'] + '</br></ul>';
+                var li = $('li');
+                var img = $('img').attr('class', 'profile-image img-circle').attr('style', 'width: 25px; height: 25px').attr('src', device['avatar']);
+                li.append(img);
+                ul.append(li);
+                ul.append($('<br>'));
               }
-              table_row += '</td><td>'
+              td_user.append(ul);
+              var td_seen = $('td');
               for(var device_index = 0; device_index < data[room].length; device_index++) {
                 var device = data[room][device_index];
-                table_row += device['most_recent_seen'] + '</br>';
+                td_seen.append(device['most_recent_seen']);
+                td_seen.append($('<br>'));
               }
-              table_row += '</td><td>'
+              var td_mac = $('td');
               for(var device_index = 0; device_index < data[room].length; device_index++) {
                 var device = data[room][device_index];
-                table_row += device['mac'] + '</br>';
+                td_mac.append(device['mac']);
+                td_mac.append($('<br>'));
               }
-              table_row += '</td>'
-              $("#current_locations_table").append(table_row);
+              $("#current_locations_table").append(($('<tr>').append(td_room).append(td_user).append(td_seen, td_mac)));
             }
           });
         }
