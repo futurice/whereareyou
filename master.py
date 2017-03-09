@@ -52,6 +52,7 @@ def get_current_locations():
         if len(df) > 0:
             df = predict_location(df)
 
+    df.drop(u"mac", inplace=True, axis=1)
     if len(df) > 0:
         for l in locations:
             locations_df = df[df["predicted_location"] == l]
@@ -155,7 +156,7 @@ def remove_old_detections():
     for det in Detection.query.all():
         if len(det.measurements.all()) == 0:
             db.session.delete(det)
-    db.session.commit()
+    print db.session.commit()
 
 
 @app.route('/')

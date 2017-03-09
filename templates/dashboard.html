@@ -79,11 +79,6 @@
                 var device = data[room][device_index];
                 table_row += device['most_recent_seen'] + '</br>';
               }
-              table_row += '</td><td>'
-              for(var device_index = 0; device_index < data[room].length; device_index++) {
-                var device = data[room][device_index];
-                table_row += device['mac'] + '</br>';
-              }
               table_row += '</td>'
               $("#current_locations_table").append(table_row);
             }
@@ -141,9 +136,6 @@
           </th>
           <th>
             Last seen
-          </th>
-          <th>
-            MAC
           </th>
         </thead>
         <tbody id="current_locations_table">
