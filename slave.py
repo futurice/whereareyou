@@ -130,7 +130,11 @@ def main():
             slave.stop_wifi_monitoring()
             stack_trace = traceback.format_exc()
             message = "@team Exception '{e}' from Slave '{slave_id}' for network {network_name} with interface {wifi_interface} with master {master_address}: {stack_trace}".format(**locals())
-            send_notification_to_flowdock(message)
+            try:
+                send_notification_to_flowdock(message)
+            except Exception, e:
+                print e
+                print message
             time.sleep(60)
 
 
