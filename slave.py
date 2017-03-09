@@ -49,12 +49,18 @@ class Slave(object):
         except:
             raise Exception("Can't read data CSV - content: " + open(Slave.LOG_FILE + "-01.csv").read())
         df = df.rename(index=str, columns=dict(zip(df.columns, [str(c).strip() for c in df.columns])))
-        df[["ESSID", "BSSID"]] = df[["ESSID", "BSSID"]].apply(lambda x: x.str.strip())
+        try:
+            df[["ESSID", "BSSID"]] = df[["ESSID", "BSSID"]].apply(lambda x: x.str.strip())
+        except Exception, e:
+            raise Exception(str(e) + df[["ESSID", "BSSID"]].to_string())
         self.access_point_mac = df.loc[df["ESSID"] == self.network_name].BSSID.unique()[0]
         while True:
             for _ in tqdm(range(Slave.UPDATE_INTERVAL)):
                 time.sleep(1)
-            df = pd.read_csv(Slave.LOG_FILE + '-01.csv', engine='c', error_bad_lines=False)
+            try:
+                df = pd.read_csv(Slave.LOG_FILE + '-01.csv', engine='c', error_bad_lines=False)
+            except:
+                raise Exception("Can't read data CSV - content: " + open(Slave.LOG_FILE + "-01.csv").read())
             df_stations = self.get_stations(df)
             if len(df_stations) > 0:
                 self.send_measurements_to_server(df_stations)
