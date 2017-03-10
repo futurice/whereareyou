@@ -95,7 +95,7 @@ class Slave(object):
         try:
             df_stations["Last time seen"] = df_stations["Last time seen"].apply(lambda x: int(time.mktime(time.strptime(x, time_pattern))))
         except:
-            raise Exception("Can't parse " + df_stations["Last time seen"])
+            raise Exception("Can't parse " + df_stations.to_string())
         df_stations["Time delta"] = (time.time() - df_stations["Last time seen"])
         df_stations = df_stations[df_stations["Time delta"] < Slave.MAXIMUM_AGE]
         #df_stations = df_stations.loc[df_stations["BSSID"] == self.access_point_mac]
