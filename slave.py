@@ -39,15 +39,24 @@ class Slave(object):
         os.system(Slave.REMOVE_CSV_FILES_COMMAND)
         subprocess.Popen(self.airodump_command.split(" "), shell=False, stdout=Slave.FNULL, stderr=subprocess.STDOUT)
 
+
+    def read_df(self):
+        read_df = False
+        while not read_df:
+            try:
+                df = pd.read_csv(Slave.LOG_FILE + '-01.csv', engine='c', error_bad_lines=False)
+                read_df = True
+            except:
+                time.sleep(0.5)
+        return df
+
+
     def run(self):
         for _ in tqdm(range(Slave.WAITING_DELAY)):
             time.sleep(1)
         if not os.path.isfile(Slave.LOG_FILE + '-01.csv'):
             raise Exception(Slave.LOG_FILE + '-01.csv does not exist. Please make sure "' + self.airodump_command + '" succeeds.')
-        try:
-            df = pd.read_csv(Slave.LOG_FILE + '-01.csv', engine='c', error_bad_lines=False)
-        except:
-            raise Exception("Can't read data CSV - content: " + open(Slave.LOG_FILE + "-01.csv").read())
+        df = self.read_df()
         df = df.rename(index=str, columns=dict(zip(df.columns, [str(c).strip() for c in df.columns])))
         try:
             df[["ESSID", "BSSID"]] = df[["ESSID", "BSSID"]].apply(lambda x: x.str.strip())
@@ -57,10 +66,7 @@ class Slave(object):
         while True:
             for _ in tqdm(range(Slave.UPDATE_INTERVAL)):
                 time.sleep(1)
-            try:
-                df = pd.read_csv(Slave.LOG_FILE + '-01.csv', engine='c', error_bad_lines=False)
-            except:
-                raise Exception("Can't read data CSV - content: " + open(Slave.LOG_FILE + "-01.csv").read())
+            df = self.read_df()
             df_stations = self.get_stations(df)
             if len(df_stations) > 0:
                 self.send_measurements_to_server(df_stations)
