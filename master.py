@@ -1,15 +1,14 @@
 """Master Logic and Routing"""
 
-from app import app, db, User, Location, Detection, TrainingDetection, \
-                is_employee, Measurement, Device
+from app import app, db, User, Location, Detection, TrainingDetection, is_employee, Measurement, Device
 from training import train_models, predict_location, get_df_from_detection, POWER_SLAVE_PREFIX
 from flask import request, render_template, make_response, redirect, url_for
 from flask_login import login_required, current_user
 from utils import get_mac_from_request
+import schedule
 import datetime
 import json
 import os
-import yaml
 import time
 import math
 import pandas as pd
@@ -21,6 +20,16 @@ AVATAR_WIDTH_HEIGHT = 25
 OFFICE_MAPPING_PATH = 'static/office_mapping.json'
 OFFICE_SVG_PATH = 'static/office.svg'
 OLD_TIME_DELTA = 1
+
+
+def remove_old_detections():
+    db.session.query(Measurement).filter(Measurement.last_seen < datetime.datetime.utcnow() - datetime.timedelta(days=OLD_TIME_DELTA)).delete()
+    db.session.commit()
+    for det in Detection.query.all():
+        if len(det.measurements.all()) == 0:
+            db.session.delete(det)
+    print db.session.commit()
+
 
 def load_locations():
     with open(OFFICE_MAPPING_PATH, 'r') as office_mapping:
@@ -52,8 +61,8 @@ def get_current_locations():
         if len(df) > 0:
             df = predict_location(df)
 
-    df.drop(u"mac", inplace=True, axis=1)
     if len(df) > 0:
+        df.drop(u"mac", inplace=True, axis=1)
         for l in locations:
             locations_df = df[df["predicted_location"] == l]
             json_data[l] = locations_df.to_dict(orient='records')
@@ -148,15 +157,6 @@ def get_context(**params):
     view_params['user_email'] = current_user.email
     view_params['avatar_url'] = current_user.avatar
     return view_params
-
-
-def remove_old_detections():
-    db.session.query(Measurement).filter(Measurement.last_seen < datetime.datetime.utcnow() - datetime.timedelta(days=OLD_TIME_DELTA)).delete()
-    db.session.commit()
-    for det in Detection.query.all():
-        if len(det.measurements.all()) == 0:
-            db.session.delete(det)
-    print db.session.commit()
 
 
 @app.route('/')
@@ -400,4 +400,5 @@ if __name__ == "__main__":
         if not os.path.isfile('ssl.crt') and not os.path.isfile('ssl.key'):
             make_ssl_devcert('./ssl', host='localhost')
         tls_params["ssl_context"] = ('./ssl.crt', './ssl.key')
+    schedule.every().day.do(remove_old_detections)
     app.run(debug=False, host='0.0.0.0', threaded=True, **tls_params)

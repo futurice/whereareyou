@@ -1,7 +1,8 @@
+""" This module configures the server app and holds the authentication logic"""
+
 from dotenv import load_dotenv, find_dotenv
 from flask import Flask, request, redirect, url_for, session, render_template
-from flask_login import LoginManager, login_user, logout_user, current_user, \
-                        login_required
+from flask_login import LoginManager, login_user, logout_user, current_user, login_required
 from flask_sslify import SSLify
 from flask_sqlalchemy import SQLAlchemy
 from functools import wraps

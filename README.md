@@ -14,7 +14,7 @@ Inspired by [whereami](https://github.com/kootenpv/whereami). Passive indoor loc
 
 
 ### Master  
-- Copy `example.env` to `.env` and add the appropriate configuration keys  
+- Copy `example.env` to `.env` and add the appropriate configuration keys. Make sure that HOST holds the URI under which your server is reachable. `HOST:5000/gCallback` must be configured in your Google API Console to be an authorized OAuth redirect URI.  
 `cp example.env .env`
 - Adapt `static/office.svg` and `static/office_mapping.json` to your office (we recommend [this](http://editor.method.ac/) online editor). You can test your office mapping at /test_mapping.
 - Create the database initially  
