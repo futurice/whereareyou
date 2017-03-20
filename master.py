@@ -165,6 +165,31 @@ def get_context(**params):
 @is_employee
 def index():
     ask_for_adding = False
+    mac = get_mac_from_request(request)
+    user = User.query.filter_by(email=current_user.email).first()
+    if mac is not None and not Device.query.filter_by(user=user, mac=mac).first():
+        ask_for_adding = True
+    return render_template('index.html', **get_context(ask_for_adding=ask_for_adding, mac=mac, email=user.email))
+
+
+@app.route('/add_device', methods=['POST'])
+def add_device():
+    if current_user.is_anonymous:
+        return "Sorry but you must be logged in to add devices."
+    mac = request.form['mac']
+    email = request.form['email']
+    user = User.query.filter_by(email=email).first()
+    if not Device.query.filter_by(user=user, mac=mac).first():
+        db.session.add(Device(mac=mac, user=user))
+        db.session.commit()
+    return redirect(url_for('index'))
+
+
+@app.route('/training')
+@login_required
+@is_employee
+def training():
+    ask_for_adding = False
     client_mac = get_mac_from_request(request)
     if client_mac is not None:
         client_mac = client_mac.upper()
@@ -183,7 +208,7 @@ def index():
         except Exception, e:
             traceback.print_exc(file=sys.stdout)
             print e
-    return render_template('index.html', **get_context(champions=champions,
+    return render_template('training.html', **get_context(champions=champions,
                            training_json=training_json,
                            ask_for_adding=ask_for_adding,
                            locations=locations, mac=client_mac,
@@ -388,7 +413,7 @@ def add_training():
     training_data = get_flattened_training_data()
     if len(training_data) > 0:
         train_models(training_data)
-    return redirect(url_for('index'))
+    return redirect(url_for('training'))
 
 
 if __name__ == "__main__":
