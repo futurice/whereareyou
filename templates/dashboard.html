@@ -7,8 +7,8 @@
       <script type="text/javascript" src="/smoothie.js"></script>
       <script type="text/javascript">
         function setup() {
-          addLocationEventHandler()
           createTimeline()
+          setMapAndTableRefresher()
         }
 
         function getMeasurementValue(last_seen, power) {
@@ -54,13 +54,55 @@
               }
             });
           }, 2500);
+        }
+
+        function buildMap() {
+          $.get( "/office_map", function( data ) {
+            $("#office_map").empty();
+            $("#office_map").append(data);
+          });
+          addMapLocationEventHandler();
+        }
+
+        function buildTable() {
+          $.getJSON( "/current_locations", function( data ) {
+            $("#current_locations_table").empty();
+            for(var room in data) {
+              table_row = '<tr class="location_row"><td class="location_name">' + room + '</td>';
+              table_row += '<td>'
+              for(var device_index = 0; device_index < data[room].length; device_index++) {
+                var device = data[room][device_index];
+                table_row += '<ul><img class="profile-image img-circle" style="width: 25px; height: 25px" src="' + device['avatar'] +'"></li>' + device['user'] + '</br></ul>';
+              }
+              table_row += '</td><td>'
+              for(var device_index = 0; device_index < data[room].length; device_index++) {
+                var device = data[room][device_index];
+                table_row += device['most_recent_seen'] + '</br>';
+              }
+              table_row += '</td>'
+              $("#current_locations_table").append(table_row);
+            }
+          });
+        }
+
+        function buildMapAndTable() {
+          buildTable();
+          buildMap();
+        }
+
+        function setMapAndTableRefresher() {
+          buildMapAndTable();
+          setInterval(function() {
+            buildMapAndTable();
+          }, 30*1000);
+
           for(var slaves_index = 0; slaves_index < SLAVES.length; slaves_index++) {
             slave_id = SLAVES[slaves_index];
             charts[slave_id].streamTo(document.getElementById("chart-" + slave_id), 500);
           }
         }
 
-        function addLocationEventHandler() {
+        function addMapLocationEventHandler() {
           $.getJSON( "/office_mapping.json", function( mapping ) {
             var location_rows = document.getElementsByClassName("location_row");
             for(var i = 0; i < location_rows.length; i++) {
@@ -82,7 +124,8 @@
     </head>
     <body onload="setup()">
     <center>
-      {{ office_svg | safe }}
+      <div id="office_map">
+      </div>
       <table class="table">
         <thead>
           <th>
@@ -94,36 +137,8 @@
           <th>
             Last seen
           </th>
-          <th>
-            MAC
-          </th>
         </thead>
-        <tbody>
-          {% for location in current_locations %}
-            <tr class="location_row">
-              <td class="location_name">
-                {{ location }}
-              </td>
-              <td>
-                <ul>
-                  {% for device in current_locations[location] %}
-                    <img class="profile-image img-circle" style="width: 25px; height: 25px" src="{{ device['avatar'] }}"></li>
-                    {{ device['user'] }}</br>
-                  {% endfor %}
-                </ul>
-              </td>
-              <td>
-                {% for device in current_locations[location] %}
-                  {{ device['most_recent_seen'] }}</br>
-                {% endfor %}
-              </td>
-              <td>
-                {% for device in current_locations[location] %}
-                  {{ device['mac'] }}</br>
-                {% endfor %}
-              </td>
-            </tr>
-          {% endfor %}
+        <tbody id="current_locations_table">
         </tbody>
       </table>
     </center>
