@@ -19,11 +19,12 @@ from xml.dom import minidom
 AVATAR_WIDTH_HEIGHT = 25
 OFFICE_MAPPING_PATH = 'static/office_mapping.json'
 OFFICE_SVG_PATH = 'static/office.svg'
-OLD_TIME_DELTA = 1
+OLD_TIME_DELTA_DAYS = 1
+OLD_TIME_DELTA_MINUTES = 5
 
 
 def remove_old_detections():
-    db.session.query(Measurement).filter(Measurement.last_seen < datetime.datetime.utcnow() - datetime.timedelta(days=OLD_TIME_DELTA)).delete()
+    db.session.query(Measurement).filter(Measurement.last_seen < datetime.datetime.utcnow() - datetime.timedelta(days=OLD_TIME_DELTA_DAYS)).delete()
     db.session.commit()
     for det in Detection.query.all():
         if len(det.measurements.all()) == 0:
@@ -40,9 +41,13 @@ def load_locations():
 
 
 def get_current_detections():
-    current_detection_ids = [d.id for d in Detection.query.filter_by(type='detection').all()]
-    return [Detection.query.get(id).serialize() for id in current_detection_ids]
-
+    current_detections = []
+    for detection in Detection.query.filter_by(type='detection').all():
+        for measurement in detection.measurements.all():
+            if measurement.last_seen < datetime.datetime.utcnow() - datetime.timedelta(minutes=OLD_TIME_DELTA_MINUTES):
+                break
+        current_detections.append(detection.serialize())
+    return current_detections
 
 def get_current_locations():
     locations = [l.value for l in Location.query.all()]
