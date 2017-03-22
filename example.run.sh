@@ -5,7 +5,7 @@ NETWORK="ItHurtsWhenIP"
 MASTER_ADDRESS="https://192.168.0.2:5000"
 STD_OUT="stdout.txt"
 ERROR_FILE="error.txt"
-CMD="sudo airmon-ng start $INTERFACE; /usr/bin/python slave.py --network $NETWORK --wifi-interface mon0 --slave-id $SLAVE_ID --master-address $MASTER_ADDRESS > $STD_OUT 2> $ERROR_FILE"
+CMD="sudo airmon-ng start $INTERFACE; /usr/bin/python -W slave.py --network $NETWORK --wifi-interface mon0 --slave-id $SLAVE_ID --master-address $MASTER_ADDRESS > $STD_OUT 2> $ERROR_FILE"
 eval $CMD
 STATUS=$?
 STD_TAIL=$(tail -n 20 $STD_OUT)

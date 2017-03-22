@@ -12,6 +12,7 @@ from tqdm import tqdm
 from urllib import urlencode
 from urllib import urlopen
 from dotenv import load_dotenv, find_dotenv
+from StringIO import StringIO
 load_dotenv(find_dotenv())
 
 
@@ -42,7 +43,8 @@ class Slave(object):
         read_df = False
         while not read_df:
             try:
-                df = pd.read_csv(Slave.LOG_FILE + '-01.csv', engine='c', error_bad_lines=False)
+                csv_content = open(Slave.LOG_FILE + '-01.csv').read().strip()
+                df = pd.read_csv(StringIO(csv_content), engine='c', error_bad_lines=False)
                 read_df = True
             except:
                 time.sleep(0.5)
