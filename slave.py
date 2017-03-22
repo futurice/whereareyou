@@ -13,8 +13,6 @@ from urllib import urlencode
 from urllib import urlopen
 from dotenv import load_dotenv, find_dotenv
 load_dotenv(find_dotenv())
-from requests.packages.urllib3.exceptions import InsecureRequestWarning
-requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
 
 
 class Slave(object):
@@ -61,7 +59,7 @@ class Slave(object):
         try:
             df[["ESSID", "BSSID"]] = df[["ESSID", "BSSID"]].apply(lambda x: x.str.strip())
         except Exception, e:
-            raise Exception(str(e) + df[["ESSID", "BSSID"]].to_string())
+            raise Exception(str(e) + df.to_string())
         self.access_point_mac = df.loc[df["ESSID"] == self.network_name].BSSID.unique()[0]
         while True:
             for _ in tqdm(range(Slave.UPDATE_INTERVAL)):

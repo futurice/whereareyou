@@ -36,9 +36,10 @@ Inspired by [whereami](https://github.com/kootenpv/whereami). Passive indoor loc
 - To run it every time your Linux device finished booting, put this in your `/etc/profile` file:  
 ```bash
 CMD="sudo bash /home/pi/whereareyou/run.sh"
-COUNT=$(ps aux | grep $CMD | wc -l)
+COUNT=$(ps aux | grep '$CMD' | wc -l)
 if [ $COUNT -eq 1 ]; then
     echo "Starting whereareyou"
+    cd /home/pi/whereareyou/
     eval "$CMD &"
 fi
 ```
