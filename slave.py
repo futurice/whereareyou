@@ -22,7 +22,7 @@ class Slave(object):
     AIRODUMP_KILL_COMMAND = 'sudo killall airodump-ng'
     REMOVE_CSV_FILES_COMMAND = 'sudo rm -rf *.csv'
     WAITING_DELAY = 15
-    UPDATE_INTERVAL = 5
+    UPDATE_INTERVAL = 30
     MAXIMUM_AGE = 5 * 60
 
     def __init__(self, network_name, wifi_interface, slave_id, master_address):
