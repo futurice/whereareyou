@@ -2,6 +2,7 @@
 
 from dotenv import load_dotenv, find_dotenv
 from flask import Flask, request, redirect, url_for, session, render_template
+from flask_compress import Compress
 from flask_login import LoginManager, login_user, logout_user, current_user, login_required
 from flask_sslify import SSLify
 from flask_sqlalchemy import SQLAlchemy
@@ -10,6 +11,10 @@ from models import get_models
 from requests_oauthlib import OAuth2Session
 import json
 import os
+
+COMPRESS_MIMETYPES = ['text/html', 'text/css', 'text/xml', 'application/json', 'application/javascript']
+COMPRESS_LEVEL = 6
+COMPRESS_MIN_SIZE = 500
 
 load_dotenv(find_dotenv())
 COMPANY_EMAIL = "@futurice.com"
@@ -20,6 +25,8 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = True
 app.config['SECRET_KEY'] = os.environ.get("SECRET_KEY")
 sslify = SSLify(app)
 db = SQLAlchemy(app)
+compress = Compress()
+compress.init_app(app)
 login_manager = LoginManager(app)
 login_manager.login_view = "login"
 login_manager.session_protection = "strong"
