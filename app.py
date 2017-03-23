@@ -2,6 +2,7 @@
 
 from dotenv import load_dotenv, find_dotenv
 from flask import Flask, request, redirect, url_for, session, render_template
+from flask_cache import Cache
 from flask_compress import Compress
 from flask_login import LoginManager, login_user, logout_user, current_user, login_required
 from flask_sslify import SSLify
@@ -27,6 +28,7 @@ sslify = SSLify(app)
 db = SQLAlchemy(app)
 compress = Compress()
 compress.init_app(app)
+cache = Cache(app, config={'CACHE_TYPE': 'simple'})
 login_manager = LoginManager(app)
 login_manager.login_view = "login"
 login_manager.session_protection = "strong"

@@ -1,6 +1,6 @@
 """Master Logic and Routing"""
 
-from app import app, db, User, Location, Detection, TrainingDetection, is_employee, Measurement, Device
+from app import app, cache, db, User, Location, Detection, TrainingDetection, is_employee, Measurement, Device
 from training import train_models, predict_location, get_df_from_detection, POWER_SLAVE_PREFIX
 from flask import request, render_template, make_response, redirect, url_for
 from flask_login import login_required, current_user
@@ -21,6 +21,8 @@ OFFICE_MAPPING_PATH = 'static/office_mapping.json'
 OFFICE_SVG_PATH = 'static/office.svg'
 OLD_TIME_DELTA_DAYS = 1
 OLD_TIME_DELTA_MINUTES = 5
+CACHE_SHORT_TIME = 10
+CACHE_LONG_TIME = 60
 
 
 def remove_old_detections():
@@ -40,6 +42,7 @@ def load_locations():
     db.session.commit()
 
 
+@cache.cached(timeout=CACHE_SHORT_TIME, key_prefix='current_detections')
 def get_current_detections():
     current_detections = []
     for detection in Detection.query.filter_by(type='detection').all():
@@ -49,6 +52,8 @@ def get_current_detections():
         current_detections.append(detection.serialize())
     return current_detections
 
+
+@cache.cached(timeout=CACHE_LONG_TIME, key_prefix='current_locations')
 def get_current_locations():
     locations = [l.value for l in Location.query.all()]
     df = get_df_from_detection(Detection.query.filter_by(type='detection').all())
