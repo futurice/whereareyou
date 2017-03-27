@@ -2,13 +2,14 @@ from sklearn.tree import DecisionTreeClassifier, export_graphviz
 from sklearn.preprocessing import LabelEncoder
 from sklearn.externals import joblib
 import pandas as pd
-import time
 import os
+import datetime
 
 MODEL_NAME = 'model.pkl'
 MODEL_MAC_NAME = 'model_mac.pkl'
-MAXIMUM_AGE = 60 * 60
+MAXIMUM_AGE = 60
 POWER_SLAVE_PREFIX = "Power_Slave_"
+OLD_TIME_DELTA_MINUTES = 5
 
 without_mac_clf = None
 mac_clf = None
@@ -41,26 +42,28 @@ def train_model(data, with_mac=True):
     os.system("dot -Tpng model.dot -o model.png")
 
 
+def measurement_too_old(measurement):
+    return measurement.last_seen < datetime.datetime.now() - datetime.timedelta(minutes=OLD_TIME_DELTA_MINUTES)
+
+
 def get_df_from_detection(detection_list):
     detection_data = []
-    too_old = False
-    most_recent_seen = 0
     for det in detection_list:
-        most_recent_seen = 0
         json_data = det.serialize()
-        for m in json_data["measurements"]:
-            json_data[POWER_SLAVE_PREFIX + m["slave_id"]] = m["power"]
-            if m["last_seen"] > most_recent_seen:
-                most_recent_seen = m["last_seen"]
-            # TODO: Fix timezone problem
-            if time.time() - m["last_seen"] > MAXIMUM_AGE:
-                too_old = True
-        del json_data["measurements"]
-        json_data["most_recent_seen"] = most_recent_seen
-        if too_old:
-            too_old = False
+        if len(json_data["measurements"]) == 0:
+            continue
+        most_recent_timestamp = max([m["last_seen"] for m in json_data["measurements"]])
+        most_recent_timestamp = datetime.datetime.fromtimestamp(most_recent_timestamp)
+        if most_recent_timestamp < datetime.datetime.now() - datetime.timedelta(minutes=MAXIMUM_AGE):
             continue
         else:
+            for m in json_data["measurements"]:
+                power = m["power"]
+                if datetime.datetime.fromtimestamp(m["last_seen"]) < most_recent_timestamp - datetime.timedelta(minutes=OLD_TIME_DELTA_MINUTES):
+                    power = -100
+                json_data[POWER_SLAVE_PREFIX + m["slave_id"]] = power
+            del json_data["measurements"]
+            json_data["most_recent_seen"] = most_recent_timestamp
             detection_data.append(json_data)
     df = pd.DataFrame(detection_data)
     return df

@@ -1,7 +1,7 @@
 """Master Logic and Routing"""
 
 from app import app, cache, db, User, Location, Detection, TrainingDetection, is_employee, Measurement, Device
-from training import train_models, predict_location, get_df_from_detection, POWER_SLAVE_PREFIX
+from training import train_models, predict_location, get_df_from_detection, measurement_too_old, POWER_SLAVE_PREFIX
 from flask import request, render_template, make_response, redirect, url_for
 from flask_login import login_required, current_user
 from utils import get_mac_from_request
@@ -42,10 +42,6 @@ def load_locations():
     db.session.commit()
 
 
-def measurement_too_old(measurement):
-    return measurement.last_seen < datetime.datetime.now() - datetime.timedelta(minutes=OLD_TIME_DELTA_MINUTES)
-
-
 @cache.cached(timeout=CACHE_SHORT_TIME, key_prefix='current_detections')
 def get_current_detections():
     current_detections = []
@@ -60,7 +56,8 @@ def get_current_detections():
 @cache.cached(timeout=CACHE_LONG_TIME, key_prefix='current_locations')
 def get_current_locations():
     locations = [l.value for l in Location.query.all()]
-    df = get_df_from_detection(Detection.query.filter_by(type='detection').all())
+    device_macs = [d.mac for d in Device.query.all()]
+    df = get_df_from_detection(Detection.query.filter_by(type='detection').filter(Detection.mac.in_(device_macs)).all())
     json_data = dict([(l, []) for l in locations])
     if len(df) > 0:
         df['user'] = '?'
@@ -71,7 +68,8 @@ def get_current_locations():
                 df.loc[index, 'user'] = device.user.name if device.user.name else device.user.email.split("@")[0].replace('.', ' ').title()
                 df.loc[index, 'avatar'] = device.user.avatar
         df = df[df["user"] != '?']
-        df["most_recent_seen"] = df["most_recent_seen"].apply(lambda timestamp: str(math.ceil((time.time() - timestamp) / 60)).split('.')[0] + " min")
+        df["most_recent_seen"] = pd.to_datetime(df["most_recent_seen"])
+        df["most_recent_seen"] = df["most_recent_seen"].apply(lambda timestamp: str(math.ceil((datetime.datetime.now() - timestamp).total_seconds() / 60)).split('.')[0] + " min")
         if len(df) > 0:
             df = predict_location(df)
 
