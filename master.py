@@ -42,12 +42,16 @@ def load_locations():
     db.session.commit()
 
 
+def measurement_too_old(measurement):
+    return measurement.last_seen < datetime.datetime.utcnow() - datetime.timedelta(minutes=OLD_TIME_DELTA_MINUTES)
+
+
 @cache.cached(timeout=CACHE_SHORT_TIME, key_prefix='current_detections')
 def get_current_detections():
     current_detections = []
     for detection in Detection.query.filter_by(type='detection').all():
         for measurement in detection.measurements.all():
-            if measurement.last_seen < datetime.datetime.utcnow() - datetime.timedelta(minutes=OLD_TIME_DELTA_MINUTES):
+            if measurement_too_old(measurement):
                 break
         current_detections.append(detection.serialize())
     return current_detections
@@ -413,7 +417,10 @@ def add_training():
     training_detection = TrainingDetection(location=Location.query.filter_by(value=location).first(), mac=mac)
     db.session.add(training_detection)
     for m in current_detection.measurements:
-        measurement = Measurement(m.slave_id, m.power, datetime.datetime.now(), training_detection)
+        power = m.power
+        if measurement_too_old(m):
+            power = -100
+        measurement = Measurement(m.slave_id, power, datetime.datetime.now(), training_detection)
         db.session.add(measurement)
     db.session.commit()
     user = User.query.filter_by(email=current_user.email).first()
