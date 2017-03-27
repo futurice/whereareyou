@@ -26,7 +26,7 @@ CACHE_LONG_TIME = 60
 
 
 def remove_old_detections():
-    db.session.query(Measurement).filter(Measurement.last_seen < datetime.datetime.utcnow() - datetime.timedelta(days=OLD_TIME_DELTA_DAYS)).delete()
+    db.session.query(Measurement).filter(Measurement.last_seen < datetime.datetime.now() - datetime.timedelta(days=OLD_TIME_DELTA_DAYS)).delete()
     db.session.commit()
     for det in Detection.query.all():
         if len(det.measurements.all()) == 0:
@@ -43,7 +43,7 @@ def load_locations():
 
 
 def measurement_too_old(measurement):
-    return measurement.last_seen < datetime.datetime.utcnow() - datetime.timedelta(minutes=OLD_TIME_DELTA_MINUTES)
+    return measurement.last_seen < datetime.datetime.now() - datetime.timedelta(minutes=OLD_TIME_DELTA_MINUTES)
 
 
 @cache.cached(timeout=CACHE_SHORT_TIME, key_prefix='current_detections')
