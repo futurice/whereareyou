@@ -178,6 +178,8 @@ def get_context(**params):
 def index():
     ask_for_adding = False
     mac = get_mac_from_request(request)
+    if mac is not None:
+        mac = mac.upper()
     user = User.query.filter_by(email=current_user.email).first()
     if mac is not None and not Device.query.filter_by(user=user, mac=mac).first():
         ask_for_adding = True
@@ -188,8 +190,8 @@ def index():
 def add_device():
     if current_user.is_anonymous:
         return "Sorry but you must be logged in to add devices."
-    mac = request.form['mac']
-    email = request.form['email']
+    mac = request.form['mac'].upper()
+    email = request.form['email'].lower()
     user = User.query.filter_by(email=email).first()
     if not Device.query.filter_by(user=user, mac=mac).first():
         db.session.add(Device(mac=mac, user=user))
