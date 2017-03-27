@@ -8,6 +8,7 @@ import os
 import time
 import traceback
 import requests
+from requests.exceptions import ConnectionError
 from tqdm import tqdm
 from urllib import urlencode
 from urllib import urlopen
@@ -24,6 +25,7 @@ class Slave(object):
     WAITING_DELAY = 15
     UPDATE_INTERVAL = 30
     MAXIMUM_AGE = 5 * 60
+    SERVER_UNREACHABLE_DELAY = 10
 
     def __init__(self, network_name, wifi_interface, slave_id, master_address):
         self.network_name = network_name
@@ -111,7 +113,17 @@ class Slave(object):
               'power': row["Power"],
               'last_seen': str(row["Last time seen"])
             })
-        requests.post(self.master_address + '/update', json={'slave_id': self.slave_id, 'data': data}, verify=False)
+
+        request_sent = True
+        while True:
+            try:
+                requests.post(self.master_address + '/update', json={'slave_id': self.slave_id, 'data': data}, verify=False)
+            except ConnectionError, e:
+                request_sent = False
+                print e
+            if request_sent:
+                break
+            time.sleep(Slave.SERVER_UNREACHABLE_DELAY)
 
 
 def send_notification_to_flowdock(content):
