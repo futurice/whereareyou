@@ -427,10 +427,17 @@ def add_training():
     if not Device.query.filter_by(user=user, mac=mac).first():
         db.session.add(Device(mac=mac, user=user))
         db.session.commit()
+    return redirect(url_for('training'))
+
+
+@app.route('/train', methods=['GET'])
+@login_required
+@is_employee
+def train():
     training_data = get_flattened_training_data()
     if len(training_data) > 0:
         train_models(training_data)
-    return redirect(url_for('training'))
+    return "Trained model successfully"
 
 
 if __name__ == "__main__":
