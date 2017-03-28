@@ -1,7 +1,7 @@
 # whereareyou
 Inspired by [whereami](https://github.com/kootenpv/whereami). Passive indoor localization using the Wifi signal strength of a users devices. A set of slaves (like Raspberry Pis) is distributed at the location and send the signal strengths of detected devices to a master server. Based on a pretrained model the master predicts where the devices currently are located.
 
-![](https://cloud.githubusercontent.com/assets/6676439/23799209/0d9a4e64-05a8-11e7-854d-9d8dcb59214d.png)
+![](https://cloud.githubusercontent.com/assets/6676439/24398514/06cde36a-13aa-11e7-80f8-bad677786fa7.png)
 
 ## Setup
 
